@@ -8,6 +8,11 @@ import {
   type ReviewTarget,
 } from "./prompts";
 import { hasBlockingReviewFindings } from "./review-result";
+import {
+  assertCanStartReview,
+  buildIsolatedReviewPrompt,
+  reviewAgentConfiguration,
+} from "./review-agent";
 
 const REVIEW_LOOP_MAX_ITERATIONS = 10;
 const REVIEW_LOOP_POLL_MS = 1_000;
@@ -327,7 +332,9 @@ export default async function plugin(bb: BbPluginApi) {
   ): Promise<string> {
     const { guidelinesFile } = await settings.get();
     const projectGuidelines = await loadProjectReviewGuidelines(parent.environmentId, guidelinesFile);
-    const prompt = buildReviewPrompt(target, { includeLocalChanges, projectGuidelines });
+    const prompt = buildIsolatedReviewPrompt(
+      buildReviewPrompt(target, { includeLocalChanges, projectGuidelines }),
+    );
     const targetLabel = reviewTargetLabel(target);
     const reviewThread = await bb.sdk.threads.spawn({
       projectId: parent.projectId,
@@ -366,6 +373,7 @@ export default async function plugin(bb: BbPluginApi) {
     }
 
     const parent = await bb.sdk.threads.get({ threadId: parentThreadId });
+    assertCanStartReview(bb.pluginId, parent.originPluginId);
     const isolated = loopFixing || mode === "isolated";
     let resolvedExecution: ReviewExecution | undefined;
     if (isolated && execution) {
@@ -551,6 +559,10 @@ export default async function plugin(bb: BbPluginApi) {
       });
     }
   }
+
+  bb.agents.configure((context) =>
+    reviewAgentConfiguration(bb.pluginId, context.origin.pluginId),
+  );
 
   bb.rpc.register(rpcContract, {
     getSession: async ({ parentThreadId }) => ({ session: await getSession(parentThreadId) }),

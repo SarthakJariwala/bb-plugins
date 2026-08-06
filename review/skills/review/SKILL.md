@@ -5,6 +5,8 @@ description: Start a structured code review of uncommitted changes, a base branc
 
 # Start a code review
 
+If this thread was created by the Review plugin as an isolated reviewer, perform the requested review directly. Do not run `bb review` or start another review thread from it.
+
 Prefer the Review button in the bb thread header when the user wants the interactive target picker.
 
 When invoked directly as a skill, infer the target from the request and run one of:

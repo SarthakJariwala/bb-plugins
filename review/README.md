@@ -6,7 +6,7 @@ It provides:
 
 - a **Review** button in every thread header;
 - a side-panel target picker for uncommitted changes, a base branch, commit, GitHub PR, paths, or custom instructions;
-- isolated reviews in a visible child thread that reuses the parent environment;
+- isolated reviews in a visible child thread that reuses the parent environment without recursively spawning more reviewers;
 - harness, model, and reasoning selectors populated from that environment's available bb providers;
 - current-thread reviews;
 - an embedded `ThreadChat` for the isolated reviewer;
@@ -119,7 +119,7 @@ Customize `startReview()` in `server.ts`. It currently:
 - creates a visible child when the host permits child threads;
 - stores the parent/review link and execution settings in namespaced KV so loop passes stay consistent.
 
-Current-thread reviews keep the current thread's harness and execution settings because a thread cannot switch providers. Use `visibility: "hidden"` for background-only review workers.
+Current-thread reviews keep the current thread's harness and execution settings because a thread cannot switch providers. Isolated workers do not receive the plugin's `review` skill, receive an explicit instruction to review directly, and are rejected as parents of another review as a final recursion guard. Use `visibility: "hidden"` for background-only review workers.
 
 ### 4. Customize the UI
 
