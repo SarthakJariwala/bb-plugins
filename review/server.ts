@@ -12,6 +12,25 @@ import { hasBlockingReviewFindings } from "./review-result";
 const REVIEW_LOOP_MAX_ITERATIONS = 10;
 const REVIEW_LOOP_POLL_MS = 1_000;
 
+const reasoningLevelSchema = z.enum([
+  "none",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "ultracode",
+  "max",
+  "ultra",
+]);
+
+const reviewExecutionSchema = z
+  .object({
+    providerId: z.string().min(1),
+    model: z.string().min(1),
+    reasoningLevel: reasoningLevelSchema,
+  })
+  .strict();
+
 const reviewTargetSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("uncommitted") }).strict(),
   z.object({ type: z.literal("baseBranch"), branch: z.string().min(1) }).strict(),
@@ -35,15 +54,54 @@ const reviewSessionSchema = z.object({
   statusMessage: z.string().nullable(),
   parentOutputBeforeFix: z.string().nullable(),
   fixObservedActive: z.boolean(),
+  execution: reviewExecutionSchema.optional(),
 });
 
 type ReviewSession = z.infer<typeof reviewSessionSchema>;
+type ReviewExecution = z.infer<typeof reviewExecutionSchema>;
 type ReviewMode = "isolated" | "current";
+
+const executionOptionsOutputSchema = z.object({
+  providers: z.array(
+    z.object({
+      id: z.string(),
+      displayName: z.string(),
+      logoUrl: z.string().nullable(),
+    }),
+  ),
+  models: z.array(
+    z.object({
+      model: z.string(),
+      displayName: z.string(),
+      description: z.string(),
+      supportedReasoningEfforts: z.array(
+        z.object({
+          reasoningEffort: reasoningLevelSchema,
+          description: z.string(),
+        }),
+      ),
+      defaultReasoningEffort: reasoningLevelSchema,
+    }),
+  ),
+  providerId: z.string(),
+  model: z.string(),
+  reasoningLevel: reasoningLevelSchema,
+  modelLoadError: z.string().nullable(),
+});
 
 export const rpcContract = defineRpcContract({
   getSession: {
     input: z.object({ parentThreadId: z.string().min(1) }).strict(),
     output: z.object({ session: reviewSessionSchema.nullable() }),
+  },
+  getExecutionOptions: {
+    input: z
+      .object({
+        parentThreadId: z.string().min(1),
+        providerId: z.string().min(1).optional(),
+      })
+      .strict(),
+    output: executionOptionsOutputSchema,
   },
   startReview: {
     input: z
@@ -52,6 +110,7 @@ export const rpcContract = defineRpcContract({
         mode: z.enum(["isolated", "current"]),
         loopFixing: z.boolean(),
         target: reviewTargetSchema,
+        execution: reviewExecutionSchema.optional(),
       })
       .strict(),
     output: z.object({ session: reviewSessionSchema }),
@@ -196,10 +255,75 @@ export default async function plugin(bb: BbPluginApi) {
     }
   }
 
+  async function getExecutionOptions(
+    parentThreadId: string,
+    requestedProviderId?: string,
+  ): Promise<z.infer<typeof executionOptionsOutputSchema>> {
+    const parent = await bb.sdk.threads.get({ threadId: parentThreadId });
+    const defaults = await bb.sdk.threads.defaultExecutionOptions({ threadId: parentThreadId });
+    const routing = parent.environmentId ? { environmentId: parent.environmentId } : {};
+    const result = await bb.sdk.providers.models({
+      ...routing,
+      providerId: requestedProviderId ?? parent.providerId,
+    });
+    const providers = result.providers.filter((provider) => provider.available);
+    const providerId = providers.some((provider) => provider.id === requestedProviderId)
+      ? requestedProviderId!
+      : providers.some((provider) => provider.id === parent.providerId)
+        ? parent.providerId
+        : providers[0]?.id;
+    if (!providerId) throw new Error("No agent harness is available in this environment.");
+
+    const selectedResult =
+      providerId === (requestedProviderId ?? parent.providerId)
+        ? result
+        : await bb.sdk.providers.models({ ...routing, providerId });
+    const models = [...selectedResult.models];
+    for (const model of selectedResult.selectedOnlyModels) {
+      if (!models.some((candidate) => candidate.model === model.model)) models.push(model);
+    }
+    if (models.length === 0) {
+      throw new Error(`No models are available for ${providers.find((provider) => provider.id === providerId)?.displayName ?? providerId}.`);
+    }
+
+    const preferredModel =
+      providerId === parent.providerId && defaults?.model
+        ? models.find((model) => model.model === defaults.model)
+        : undefined;
+    const selectedModel = preferredModel ?? models.find((model) => model.isDefault) ?? models[0]!;
+    const supportedReasoning = selectedModel.supportedReasoningEfforts.map(
+      (effort) => effort.reasoningEffort,
+    );
+    const reasoningLevel =
+      providerId === parent.providerId && defaults?.reasoningLevel && supportedReasoning.includes(defaults.reasoningLevel)
+        ? defaults.reasoningLevel
+        : selectedModel.defaultReasoningEffort;
+
+    return {
+      providers: providers.map(({ id, displayName, logoUrl }) => ({ id, displayName, logoUrl })),
+      models: models.map(
+        ({ model, displayName, description, supportedReasoningEfforts, defaultReasoningEffort }) => ({
+          model,
+          displayName,
+          description,
+          supportedReasoningEfforts,
+          defaultReasoningEffort,
+        }),
+      ),
+      providerId,
+      model: selectedModel.model,
+      reasoningLevel,
+      modelLoadError: selectedResult.modelLoadError
+        ? `${selectedResult.modelLoadError.code.replaceAll("_", " ")}`
+        : null,
+    };
+  }
+
   async function spawnReviewThread(
     parent: Awaited<ReturnType<typeof bb.sdk.threads.get>>,
     target: ReviewTarget,
     includeLocalChanges: boolean,
+    execution?: ReviewExecution,
   ): Promise<string> {
     const { guidelinesFile } = await settings.get();
     const projectGuidelines = await loadProjectReviewGuidelines(parent.environmentId, guidelinesFile);
@@ -207,7 +331,18 @@ export default async function plugin(bb: BbPluginApi) {
     const targetLabel = reviewTargetLabel(target);
     const reviewThread = await bb.sdk.threads.spawn({
       projectId: parent.projectId,
-      providerId: parent.providerId,
+      providerId: execution?.providerId ?? parent.providerId,
+      ...(execution
+        ? {
+            model: execution.model,
+            reasoningLevel: execution.reasoningLevel,
+            executionInputSources: {
+              providerId: "explicit" as const,
+              model: "explicit" as const,
+              reasoningLevel: "explicit" as const,
+            },
+          }
+        : {}),
       environment: parent.environmentId
         ? { type: "reuse", environmentId: parent.environmentId }
         : { type: "project-default" },
@@ -224,6 +359,7 @@ export default async function plugin(bb: BbPluginApi) {
     target: ReviewTarget,
     mode: ReviewMode,
     loopFixing: boolean,
+    execution?: ReviewExecution,
   ): Promise<ReviewSession> {
     if (loopFixing && target.type === "commit") {
       throw new Error("Loop mode does not work with commit review.");
@@ -231,10 +367,26 @@ export default async function plugin(bb: BbPluginApi) {
 
     const parent = await bb.sdk.threads.get({ threadId: parentThreadId });
     const isolated = loopFixing || mode === "isolated";
-    let reviewThreadId = parentThreadId;
+    let resolvedExecution: ReviewExecution | undefined;
+    if (isolated && execution) {
+      const available = await getExecutionOptions(parentThreadId, execution.providerId);
+      const selectedModel = available.models.find((model) => model.model === execution.model);
+      if (available.providerId !== execution.providerId || !selectedModel) {
+        throw new Error("The selected reviewer harness or model is no longer available.");
+      }
+      if (
+        !selectedModel.supportedReasoningEfforts.some(
+          (effort) => effort.reasoningEffort === execution.reasoningLevel,
+        )
+      ) {
+        throw new Error("The selected model does not support that reasoning level.");
+      }
+      resolvedExecution = execution;
+    }
 
+    let reviewThreadId = parentThreadId;
     if (isolated) {
-      reviewThreadId = await spawnReviewThread(parent, target, loopFixing);
+      reviewThreadId = await spawnReviewThread(parent, target, loopFixing, resolvedExecution);
     } else {
       const { guidelinesFile } = await settings.get();
       const projectGuidelines = await loadProjectReviewGuidelines(parent.environmentId, guidelinesFile);
@@ -265,6 +417,7 @@ export default async function plugin(bb: BbPluginApi) {
       statusMessage: loopFixing ? "Review pass 1 is running." : null,
       parentOutputBeforeFix: null,
       fixObservedActive: false,
+      ...(resolvedExecution ? { execution: resolvedExecution } : {}),
     };
     await persistSession(session);
     return session;
@@ -386,7 +539,7 @@ export default async function plugin(bb: BbPluginApi) {
         return;
       }
 
-      const reviewThreadId = await spawnReviewThread(parent, session.target, true);
+      const reviewThreadId = await spawnReviewThread(parent, session.target, true, session.execution);
       await persistIfCurrent(session, {
         ...session,
         reviewThreadId,
@@ -401,8 +554,10 @@ export default async function plugin(bb: BbPluginApi) {
 
   bb.rpc.register(rpcContract, {
     getSession: async ({ parentThreadId }) => ({ session: await getSession(parentThreadId) }),
-    startReview: async ({ parentThreadId, target, mode, loopFixing }) => ({
-      session: await startReview(parentThreadId, target, mode, loopFixing),
+    getExecutionOptions: async ({ parentThreadId, providerId }) =>
+      getExecutionOptions(parentThreadId, providerId),
+    startReview: async ({ parentThreadId, target, mode, loopFixing, execution }) => ({
+      session: await startReview(parentThreadId, target, mode, loopFixing, execution),
     }),
     applyFindings: async ({ parentThreadId }) => {
       await applyFindings(parentThreadId);

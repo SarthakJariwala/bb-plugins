@@ -12,6 +12,13 @@ import {
 import type { rpcContract } from "./server";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const TARGETS = [
   ["uncommitted", "Uncommitted", "Staged, unstaged, and untracked changes"],
@@ -25,6 +32,26 @@ const TARGETS = [
 const REVIEW_LOOP_MAX_ITERATIONS = 10;
 type TargetKind = (typeof TARGETS)[number][0];
 type LoopState = "off" | "reviewing" | "fixing" | "complete" | "stopped";
+type ReasoningLevel = "none" | "low" | "medium" | "high" | "xhigh" | "ultracode" | "max" | "ultra";
+type ReviewExecution = {
+  providerId: string;
+  model: string;
+  reasoningLevel: ReasoningLevel;
+};
+type ExecutionOptions = {
+  providers: Array<{ id: string; displayName: string; logoUrl: string | null }>;
+  models: Array<{
+    model: string;
+    displayName: string;
+    description: string;
+    supportedReasoningEfforts: Array<{ reasoningEffort: ReasoningLevel; description: string }>;
+    defaultReasoningEffort: ReasoningLevel;
+  }>;
+  providerId: string;
+  model: string;
+  reasoningLevel: ReasoningLevel;
+  modelLoadError: string | null;
+};
 type Session = {
   runId: string;
   parentThreadId: string;
@@ -36,6 +63,7 @@ type Session = {
   loopState: LoopState;
   iteration: number;
   statusMessage: string | null;
+  execution?: ReviewExecution;
 };
 
 type ReviewTarget =
@@ -71,6 +99,20 @@ function makeTarget(kind: TargetKind, detail: string): ReviewTarget {
   }
 }
 
+function reasoningLabel(level: ReasoningLevel): string {
+  const labels: Record<ReasoningLevel, string> = {
+    none: "None",
+    low: "Low",
+    medium: "Medium",
+    high: "High",
+    xhigh: "Extra high",
+    ultracode: "Ultra code",
+    max: "Max",
+    ultra: "Ultra",
+  };
+  return labels[level];
+}
+
 function detailCopy(kind: TargetKind): { placeholder: string; multiline: boolean } | null {
   switch (kind) {
     case "uncommitted":
@@ -97,7 +139,12 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
   const [detail, setDetail] = useState("");
   const [mode, setMode] = useState<"isolated" | "current">("isolated");
   const [loopFixing, setLoopFixing] = useState(false);
+  const [executionOptions, setExecutionOptions] = useState<ExecutionOptions | null>(null);
+  const [providerId, setProviderId] = useState("");
+  const [model, setModel] = useState("");
+  const [reasoningLevel, setReasoningLevel] = useState<ReasoningLevel>("high");
   const [loading, setLoading] = useState(true);
+  const [optionsLoading, setOptionsLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const detailConfig = useMemo(() => detailCopy(kind), [kind]);
@@ -135,6 +182,29 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
     };
   }, [refreshSession]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setOptionsLoading(true);
+    void rpc
+      .call("getExecutionOptions", { parentThreadId: threadId })
+      .then((result) => {
+        if (cancelled) return;
+        setExecutionOptions(result);
+        setProviderId(result.providerId);
+        setModel(result.model);
+        setReasoningLevel(result.reasoningLevel);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) setMessage(error instanceof Error ? error.message : String(error));
+      })
+      .finally(() => {
+        if (!cancelled) setOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rpc, threadId]);
+
   useRealtime("session", (payload) => {
     if (
       payload &&
@@ -146,17 +216,52 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
     }
   });
 
+  async function changeProvider(nextProviderId: string) {
+    if (!nextProviderId) return;
+    setProviderId(nextProviderId);
+    setMessage(null);
+    setOptionsLoading(true);
+    try {
+      const result = await rpc.call("getExecutionOptions", {
+        parentThreadId: threadId,
+        providerId: nextProviderId,
+      });
+      setExecutionOptions(result);
+      setProviderId(result.providerId);
+      setModel(result.model);
+      setReasoningLevel(result.reasoningLevel);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setOptionsLoading(false);
+    }
+  }
+
+  function changeModel(nextModel: string) {
+    if (!nextModel) return;
+    setModel(nextModel);
+    const selected = executionOptions?.models.find((candidate) => candidate.model === nextModel);
+    if (!selected) return;
+    const supported = selected.supportedReasoningEfforts.map((effort) => effort.reasoningEffort);
+    if (!supported.includes(reasoningLevel)) setReasoningLevel(selected.defaultReasoningEffort);
+  }
+
   async function start(event: FormEvent) {
     event.preventDefault();
     setMessage(null);
     setWorking(true);
     try {
       const target = makeTarget(kind, detail);
+      const isolated = loopFixing || mode === "isolated";
+      if (isolated && (!providerId || !model)) throw new Error("Choose a reviewer harness and model.");
       const result = await rpc.call("startReview", {
         parentThreadId: threadId,
         mode,
         loopFixing,
         target,
+        ...(isolated
+          ? { execution: { providerId, model, reasoningLevel } }
+          : {}),
       });
       setSession(result.session);
       setMessage(
@@ -227,6 +332,9 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
               {session.loopFixing
                 ? `Loop ${session.loopState} · pass ${session.iteration}/${REVIEW_LOOP_MAX_ITERATIONS}`
                 : "Separate review thread"}
+              {session.execution
+                ? ` · ${session.execution.model} · ${reasoningLabel(session.execution.reasoningLevel)}`
+                : ""}
             </div>
           </div>
           <Button size="sm" variant="outline" onClick={() => navigate.toThread(session.reviewThreadId)}>
@@ -275,11 +383,11 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
   }
 
   return (
-    <form className="space-y-5 p-4" onSubmit={(event) => void start(event)}>
+    <form className="h-full min-h-0 space-y-5 overflow-y-auto p-4" onSubmit={(event) => void start(event)}>
       <div>
         <h2 className="text-base font-semibold">Start code review</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Uses the current thread's project, provider, and environment.
+          Uses the current project and environment. Choose the harness, model, and reasoning for an isolated reviewer.
         </p>
       </div>
 
@@ -358,8 +466,81 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
         </label>
       </fieldset>
 
+      <fieldset className="space-y-3" disabled={mode === "current" || optionsLoading}>
+        <legend className="text-sm font-medium">Reviewer</legend>
+        <p className="text-xs text-muted-foreground">
+          {mode === "current"
+            ? "Current-thread reviews keep that thread's existing harness and execution settings."
+            : "These settings are reused for every pass in a review/fix loop."}
+        </p>
+        <label className="block space-y-1.5 text-xs font-medium">
+          Harness
+          <Select
+            value={providerId}
+            onValueChange={(value) => void changeProvider(value)}
+            disabled={mode === "current" || optionsLoading || !executionOptions}
+          >
+            <SelectTrigger aria-label="Reviewer harness">
+              <SelectValue placeholder={optionsLoading ? "Loading harnesses…" : "Choose harness"} />
+            </SelectTrigger>
+            <SelectContent>
+              {executionOptions?.providers.map((provider) => (
+                <SelectItem key={provider.id} value={provider.id}>
+                  {provider.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="block space-y-1.5 text-xs font-medium">
+          Model
+          <Select
+            value={model}
+            onValueChange={changeModel}
+            disabled={mode === "current" || optionsLoading || !executionOptions}
+          >
+            <SelectTrigger aria-label="Reviewer model">
+              <SelectValue placeholder={optionsLoading ? "Loading models…" : "Choose model"} />
+            </SelectTrigger>
+            <SelectContent>
+              {executionOptions?.models.map((option) => (
+                <SelectItem key={option.model} value={option.model}>
+                  {option.displayName}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </label>
+        <label className="block space-y-1.5 text-xs font-medium">
+          Reasoning
+          <Select
+            value={reasoningLevel}
+            onValueChange={(value) => {
+              if (value) setReasoningLevel(value as ReasoningLevel);
+            }}
+            disabled={mode === "current" || optionsLoading || !executionOptions}
+          >
+            <SelectTrigger aria-label="Reviewer reasoning level">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {executionOptions?.models
+                .find((option) => option.model === model)
+                ?.supportedReasoningEfforts.map((effort) => (
+                  <SelectItem key={effort.reasoningEffort} value={effort.reasoningEffort}>
+                    {reasoningLabel(effort.reasoningEffort)}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </label>
+        {executionOptions?.modelLoadError ? (
+          <p className="text-xs text-destructive">Model discovery: {executionOptions.modelLoadError}</p>
+        ) : null}
+      </fieldset>
+
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
-      <Button type="submit" disabled={working} className="w-full">
+      <Button type="submit" disabled={working || (mode === "isolated" && optionsLoading)} className="w-full">
         {working ? "Starting…" : loopFixing ? "Start review/fix loop" : "Start review"}
       </Button>
     </form>

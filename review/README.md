@@ -7,6 +7,7 @@ It provides:
 - a **Review** button in every thread header;
 - a side-panel target picker for uncommitted changes, a base branch, commit, GitHub PR, paths, or custom instructions;
 - isolated reviews in a visible child thread that reuses the parent environment;
+- harness, model, and reasoning selectors populated from that environment's available bb providers;
 - current-thread reviews;
 - an embedded `ThreadChat` for the isolated reviewer;
 - **Apply findings**, which sends one-shot review output back to the parent thread as an implementation task;
@@ -112,12 +113,13 @@ The RPC schema validates both frontend input and backend output.
 Customize `startReview()` in `server.ts`. It currently:
 
 - reads the parent via `bb.sdk.threads.get()`;
-- reuses its environment;
-- keeps the same provider;
+- discovers available harnesses and models through `bb.sdk.providers.models()`;
+- defaults to the parent's resolved provider, model, and reasoning;
+- reuses the parent's environment while honoring the selected reviewer execution settings;
 - creates a visible child when the host permits child threads;
-- stores the parent/review link in namespaced KV.
+- stores the parent/review link and execution settings in namespaced KV so loop passes stay consistent.
 
-Use `visibility: "hidden"` for background-only review workers, or pass model/reasoning defaults if reviews should use a dedicated reviewer model.
+Current-thread reviews keep the current thread's harness and execution settings because a thread cannot switch providers. Use `visibility: "hidden"` for background-only review workers.
 
 ### 4. Customize the UI
 
