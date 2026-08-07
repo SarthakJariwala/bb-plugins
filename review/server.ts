@@ -66,6 +66,13 @@ type ReviewSession = z.infer<typeof reviewSessionSchema>;
 type ReviewExecution = z.infer<typeof reviewExecutionSchema>;
 type ReviewMode = "isolated" | "current";
 
+const branchOptionsOutputSchema = z.object({
+  branches: z.array(z.string()),
+  defaultBranch: z.string().nullable(),
+  currentBranch: z.string().nullable(),
+  branchesTruncated: z.boolean(),
+});
+
 const executionOptionsOutputSchema = z.object({
   providers: z.array(
     z.object({
@@ -107,6 +114,10 @@ export const rpcContract = defineRpcContract({
       })
       .strict(),
     output: executionOptionsOutputSchema,
+  },
+  getBranchOptions: {
+    input: z.object({ parentThreadId: z.string().min(1) }).strict(),
+    output: branchOptionsOutputSchema,
   },
   startReview: {
     input: z
@@ -258,6 +269,51 @@ export default async function plugin(bb: BbPluginApi) {
     } catch {
       return null;
     }
+  }
+
+  async function getBranchOptions(
+    parentThreadId: string,
+  ): Promise<z.infer<typeof branchOptionsOutputSchema>> {
+    const parent = await bb.sdk.threads.get({ threadId: parentThreadId });
+    if (!parent.environmentId) {
+      throw new Error("This thread has no environment to load branches from.");
+    }
+
+    const environment = await bb.sdk.environments.get({ environmentId: parent.environmentId });
+    if (!environment.isGitRepo) {
+      throw new Error("This thread's environment is not a Git repository.");
+    }
+
+    const result = await bb.sdk.projects.branches({
+      projectId: parent.projectId,
+      hostId: environment.hostId,
+      limit: "500",
+    });
+    const preferredCandidates = [
+      environment.mergeBaseBranch,
+      environment.baseBranch,
+      result.defaultWorktreeBaseBranch,
+      result.defaultBranch,
+      result.originDefaultBranch,
+    ].filter((branch): branch is string => Boolean(branch?.trim()));
+    const defaultBranch =
+      preferredCandidates.find((branch) => branch !== environment.branchName) ??
+      preferredCandidates[0] ??
+      null;
+    const branches = Array.from(
+      new Set(
+        [defaultBranch, ...result.branches, ...result.remoteBranches]
+          .filter((branch): branch is string => Boolean(branch?.trim()))
+          .map((branch) => branch.trim()),
+      ),
+    );
+
+    return {
+      branches,
+      defaultBranch,
+      currentBranch: environment.branchName,
+      branchesTruncated: result.branchesTruncated || result.remoteBranchesTruncated,
+    };
   }
 
   async function getExecutionOptions(
@@ -568,6 +624,7 @@ export default async function plugin(bb: BbPluginApi) {
     getSession: async ({ parentThreadId }) => ({ session: await getSession(parentThreadId) }),
     getExecutionOptions: async ({ parentThreadId, providerId }) =>
       getExecutionOptions(parentThreadId, providerId),
+    getBranchOptions: async ({ parentThreadId }) => getBranchOptions(parentThreadId),
     startReview: async ({ parentThreadId, target, mode, loopFixing, execution }) => ({
       session: await startReview(parentThreadId, target, mode, loopFixing, execution),
     }),

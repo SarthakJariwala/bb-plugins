@@ -38,6 +38,12 @@ type ReviewExecution = {
   model: string;
   reasoningLevel: ReasoningLevel;
 };
+type BranchOptions = {
+  branches: string[];
+  defaultBranch: string | null;
+  currentBranch: string | null;
+  branchesTruncated: boolean;
+};
 type ExecutionOptions = {
   providers: Array<{ id: string; displayName: string; logoUrl: string | null }>;
   models: Array<{
@@ -118,7 +124,7 @@ function detailCopy(kind: TargetKind): { placeholder: string; multiline: boolean
     case "uncommitted":
       return null;
     case "baseBranch":
-      return { placeholder: "main", multiline: false };
+      return null;
     case "commit":
       return { placeholder: "abc123", multiline: false };
     case "pullRequest":
@@ -139,6 +145,9 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
   const [detail, setDetail] = useState("");
   const [mode, setMode] = useState<"isolated" | "current">("isolated");
   const [loopFixing, setLoopFixing] = useState(false);
+  const [branchOptions, setBranchOptions] = useState<BranchOptions | null>(null);
+  const [branchOptionsLoading, setBranchOptionsLoading] = useState(true);
+  const [branchOptionsError, setBranchOptionsError] = useState<string | null>(null);
   const [executionOptions, setExecutionOptions] = useState<ExecutionOptions | null>(null);
   const [providerId, setProviderId] = useState("");
   const [model, setModel] = useState("");
@@ -181,6 +190,34 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
       cancelled = true;
     };
   }, [refreshSession]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setBranchOptionsLoading(true);
+    setBranchOptionsError(null);
+    void rpc
+      .call("getBranchOptions", { parentThreadId: threadId })
+      .then((result) => {
+        if (!cancelled) setBranchOptions(result);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setBranchOptions(null);
+          setBranchOptionsError(error instanceof Error ? error.message : String(error));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setBranchOptionsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rpc, threadId]);
+
+  useEffect(() => {
+    if (kind !== "baseBranch" || detail || !branchOptions) return;
+    setDetail(branchOptions.defaultBranch ?? branchOptions.branches[0] ?? "");
+  }, [branchOptions, detail, kind]);
 
   useEffect(() => {
     let cancelled = false;
@@ -415,7 +452,40 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
         ))}
       </fieldset>
 
-      {detailConfig ? (
+      {kind === "baseBranch" ? (
+        <label className="block space-y-2 text-sm font-medium">
+          Base branch
+          <Select
+            value={detail}
+            onValueChange={setDetail}
+            disabled={branchOptionsLoading || !branchOptions?.branches.length}
+          >
+            <SelectTrigger aria-label="Base branch">
+              <SelectValue
+                placeholder={branchOptionsLoading ? "Loading branches…" : "Choose a branch"}
+              />
+            </SelectTrigger>
+            <SelectContent>
+              {branchOptions?.branches.map((branch) => (
+                <SelectItem key={branch} value={branch}>
+                  {branch}
+                  {branch === branchOptions.defaultBranch ? " (default)" : ""}
+                  {branch === branchOptions.currentBranch ? " (current)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {branchOptionsError ? (
+            <span className="block text-xs font-normal text-destructive">{branchOptionsError}</span>
+          ) : branchOptions && branchOptions.branches.length === 0 ? (
+            <span className="block text-xs font-normal text-muted-foreground">No branches found.</span>
+          ) : branchOptions?.branchesTruncated ? (
+            <span className="block text-xs font-normal text-muted-foreground">
+              Showing the first 500 available branches.
+            </span>
+          ) : null}
+        </label>
+      ) : detailConfig ? (
         <label className="block space-y-2 text-sm font-medium">
           {kind === "custom" ? "Instructions" : kind === "folder" ? "Paths" : "Value"}
           {detailConfig.multiline ? (
@@ -540,7 +610,15 @@ function ReviewPanel({ threadId }: PluginThreadPanelProps) {
       </fieldset>
 
       {message ? <p className="text-sm text-destructive">{message}</p> : null}
-      <Button type="submit" disabled={working || (mode === "isolated" && optionsLoading)} className="w-full">
+      <Button
+        type="submit"
+        disabled={
+          working ||
+          (mode === "isolated" && optionsLoading) ||
+          (kind === "baseBranch" && (branchOptionsLoading || !detail))
+        }
+        className="w-full"
+      >
         {working ? "Starting…" : loopFixing ? "Start review/fix loop" : "Start review"}
       </Button>
     </form>
