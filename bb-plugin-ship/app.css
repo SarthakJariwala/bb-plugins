@@ -1,0 +1,69 @@
+.ship-select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%),
+    linear-gradient(
+      105deg,
+      transparent 38%,
+      color-mix(in srgb, currentColor 20%, transparent) 50%,
+      transparent 62%
+    );
+  background-position:
+    calc(100% - 11px) 50%,
+    calc(100% - 7px) 50%,
+    145% 0;
+  background-repeat: no-repeat;
+  background-size:
+    4px 4px,
+    4px 4px,
+    250% 100%;
+}
+
+.ship-select:hover {
+  animation: ship-shine 700ms ease-out;
+}
+
+.ship-select-compact {
+  background-image: linear-gradient(
+    105deg,
+    transparent 38%,
+    color-mix(in srgb, currentColor 20%, transparent) 50%,
+    transparent 62%
+  );
+  background-position: 145% 0;
+  background-size: 250% 100%;
+}
+
+.ship-select-compact:hover {
+  animation-name: ship-shine-compact;
+}
+
+@keyframes ship-shine {
+  from {
+    background-position:
+      calc(100% - 11px) 50%,
+      calc(100% - 7px) 50%,
+      145% 0;
+  }
+  to {
+    background-position:
+      calc(100% - 11px) 50%,
+      calc(100% - 7px) 50%,
+      -45% 0;
+  }
+}
+
+@keyframes ship-shine-compact {
+  from {
+    background-position: 145% 0;
+  }
+  to {
+    background-position: -45% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ship-select:hover {
+    animation: none;
+  }
+}

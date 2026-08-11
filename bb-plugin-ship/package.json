@@ -1,0 +1,33 @@
+{
+  "name": "bb-plugin-ship",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "bb plugin build"
+  },
+  "engines": {
+    "bb": ">=0.36",
+    "bbPluginSdk": "^0.4.1"
+  },
+  "bb": {
+    "name": "Ship",
+    "description": "Draft shipping instructions for main or a pull request from any thread.",
+    "branding": {
+      "icon": "Zap"
+    },
+    "server": "./server.ts",
+    "app": "./app.tsx"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "better-sqlite3": "^13.0.3",
+    "hono": "^4.13.1",
+    "typescript": "^5.7.0",
+    "vitest": "^4.1.10",
+    "zod": "^4.4.3"
+  }
+}
