@@ -3,6 +3,14 @@ import {
   useComposer,
   type PluginThreadHeaderActionProps,
 } from "@bb/plugin-sdk/app";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Icon } from "@/components/ui/icon";
 import { SHIP_OPTIONS } from "./prompts";
 import "./app.css";
 
@@ -11,32 +19,32 @@ function ShipHeaderButton({ isCompactViewport }: PluginThreadHeaderActionProps) 
 
   function copyPrompt(prompt: string) {
     composer.setText(prompt);
-    composer.focus();
+    requestAnimationFrame(() => composer.focus());
   }
 
   return (
-    <select
-      value=""
-      aria-label="Ship changes"
-      className={
-        isCompactViewport
-          ? "ship-select ship-select-compact h-7 w-7 cursor-pointer appearance-none rounded-md border-0 bg-transparent text-center text-xs font-medium hover:bg-state-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          : "ship-select h-7 w-[4.5rem] cursor-pointer appearance-none rounded-md border-0 bg-transparent pl-3 pr-6 text-left text-xs font-medium hover:bg-state-hover focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      }
-      onChange={(event) => {
-        const option = SHIP_OPTIONS.find(({ value }) => value === event.target.value);
-        if (option) copyPrompt(option.prompt);
-      }}
-    >
-      <option value="" disabled hidden>
-        {isCompactViewport ? "S" : "Ship"}
-      </option>
-      {SHIP_OPTIONS.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size={isCompactViewport ? "icon" : "sm"}
+          className="ship-trigger relative h-7 overflow-hidden"
+          aria-label="Ship changes"
+        >
+          <span className="relative z-[1]">{isCompactViewport ? "S" : "Ship"}</span>
+          {!isCompactViewport ? (
+            <Icon name="ChevronDown" className="relative z-[1] size-3.5 text-muted-foreground" />
+          ) : null}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" mobileTitle="Ship changes">
+        {SHIP_OPTIONS.map((option) => (
+          <DropdownMenuItem key={option.value} onSelect={() => copyPrompt(option.prompt)}>
+            {option.label}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

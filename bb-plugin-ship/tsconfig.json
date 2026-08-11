@@ -18,6 +18,9 @@
       ],
       "@bb/plugin-sdk/app": [
         "./types/bb-plugin-sdk-app.d.ts"
+      ],
+      "@/*": [
+        "./*"
       ]
     },
     "noEmit": true,
@@ -28,6 +31,9 @@
     "app.tsx",
     "prompts.ts",
     "prompts.test.ts",
-    "types"
+    "types",
+    "components",
+    "lib",
+    "hooks"
   ]
 }
