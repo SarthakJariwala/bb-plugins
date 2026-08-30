@@ -16,7 +16,7 @@
     "name": "Sprite Keepalive",
     "description": "Keeps the server Sprite awake while BB threads or background work are active.",
     "branding": {
-      "icon": "Zap"
+      "icon": "./assets/heartbeat.svg"
     },
     "server": "./server.ts",
     "skills": []

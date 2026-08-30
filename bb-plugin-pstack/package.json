@@ -19,7 +19,7 @@
     "name": "pstack",
     "description": "Lauren Tan's pstack workflows, ported to visible BB child threads on Pi.",
     "branding": {
-      "icon": "Crown"
+      "icon": "./assets/potato.svg"
     },
     "server": "./server.ts",
     "app": "./app.tsx",
