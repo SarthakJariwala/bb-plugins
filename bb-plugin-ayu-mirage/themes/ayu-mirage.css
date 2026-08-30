@@ -1,0 +1,107 @@
+/* Ayu Mirage tokens mapped for BB by vburojevic/bb-plugin-ayu. */
+
+:root, .light, .dark {
+  color-scheme: dark;
+
+  /* Canvas uses ayu's surface.lift, the main content surface. */
+  --canvas: #242936;
+  --ink: #cccac2;
+
+  /* Ayu puts chrome below the content; BB would derive it above. */
+  --sidebar: #1f2430;
+  --sidebar-border: #171b24;
+  --sidebar-accent: #63759926;
+
+  /* surfaces ayu lifts above the content */
+  --card: #282e3b;
+  --popover: #1c212c;
+  --surface-raised: #282e3b;
+  --surface-raised-solid: #282e3b;
+
+  /* Ink is warm, so neutral fills cannot be left to derive. */
+  --secondary: #69758c1f;
+  --accent: #69758c1f;
+  --muted: #63759926;
+  --surface-recessed: #1f2430;
+  --surface-recessed-solid: #1f2430;
+  --surface-recessed-soft-solid: #1f2430;
+
+  /* Ayu draws lines and overlays more subtly than BB derives them. */
+  --border: #171b24;
+  --border-hairline: #171b24;
+  --border-seam: #171b24;
+  --input: #707a8c33;
+  --state-hover: #69758c1f;
+  --state-active: #63759926;
+  --surface-selected: #63759926;
+
+  /* accent */
+  --primary: #ffcc66;
+  --primary-foreground: #735923;
+  --file-accent: #73d0ff;
+
+  /* semantic */
+  --destructive: #ff6666;
+  --destructive-foreground: #ffffff;
+  --destructive-text: #ff6666;
+  --warning: #ffcc66;
+  --warning-text: #ffcc66;
+  --attention: #ffcc66;
+  --success: #87d96c;
+  --diff-added: #87d96c;
+  --diff-removed: #f27983;
+  --pr-merged: #dfbfff;
+
+  /* terminal */
+  --ansi-0: #0a0000;
+  --ansi-bg-fg-0: #ffffff;
+  --ansi-1: #f06b5c;
+  --ansi-bg-fg-1: #000000;
+  --ansi-2: #bfe76d;
+  --ansi-bg-fg-2: #000000;
+  --ansi-3: #e6b752;
+  --ansi-bg-fg-3: #000000;
+  --ansi-4: #3bbbf4;
+  --ansi-bg-fg-4: #000000;
+  --ansi-5: #d09ffd;
+  --ansi-bg-fg-5: #000000;
+  --ansi-6: #84ceb5;
+  --ansi-bg-fg-6: #000000;
+  --ansi-7: #d2d6dc;
+  --ansi-bg-fg-7: #000000;
+  --ansi-8: #707a8c;
+  --ansi-bg-fg-8: #000000;
+  --ansi-9: #f39184;
+  --ansi-bg-fg-9: #000000;
+  --ansi-10: #d5ff80;
+  --ansi-bg-fg-10: #000000;
+  --ansi-11: #ffcd66;
+  --ansi-bg-fg-11: #000000;
+  --ansi-12: #73d0ff;
+  --ansi-bg-fg-12: #000000;
+  --ansi-13: #dfbfff;
+  --ansi-bg-fg-13: #000000;
+  --ansi-14: #95e6cb;
+  --ansi-bg-fg-14: #000000;
+  --ansi-15: #e3e6ea;
+  --ansi-bg-fg-15: #000000;
+
+  /* text tiers */
+  --muted-foreground: color-mix(in oklch, var(--ink) 78%, var(--canvas));
+  --readback-foreground: color-mix(in oklch, var(--ink) 71%, var(--canvas));
+  --subtle-foreground: color-mix(in oklch, var(--ink) 64%, var(--canvas));
+}
+
+/* Syntax highlighting (sugar-high). Declared at element level because BB
+   sets these on .bb-code-highlight itself, not on :root. */
+.bb-code-highlight,
+.light .bb-code-highlight,
+.dark .bb-code-highlight {
+  --sh-keyword: #ffa659;
+  --sh-string: #d5ff80;
+  --sh-comment: #6e7c8f;
+  --sh-class: #73d0ff;
+  --sh-entity: #ffcd66;
+  --sh-property: #5ccfe6;
+  --sh-jsxliterals: #5ccfe6;
+}

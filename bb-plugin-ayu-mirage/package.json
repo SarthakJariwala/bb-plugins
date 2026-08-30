@@ -1,0 +1,46 @@
+{
+  "name": "bb-plugin-ayu-mirage",
+  "version": "0.1.0",
+  "description": "Ayu Mirage theme for BB.",
+  "type": "module",
+  "engines": {
+    "bb": ">=0.40",
+    "bbPluginSdk": ">=0.4.21"
+  },
+  "scripts": {
+    "build": "bb plugin build",
+    "typecheck": "tsc --noEmit"
+  },
+  "bb": {
+    "name": "Ayu Mirage",
+    "description": "Muted blue-grey surfaces with Ayu's warm amber accent.",
+    "branding": {
+      "icon": "./assets/icon.svg"
+    },
+    "server": "./server.ts",
+    "skills": [],
+    "themes": [
+      {
+        "id": "ayu-mirage",
+        "name": "Ayu Mirage",
+        "description": "Muted blue-grey, warm amber accent",
+        "css": "./themes/ayu-mirage.css",
+        "codeTheme": {
+          "dark": "ayu-mirage",
+          "light": "ayu-mirage"
+        }
+      }
+    ]
+  },
+  "devDependencies": {
+    "@get-bb/plugin-sdk": "0.4.21",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.18",
+    "better-sqlite3": "^12.11.1",
+    "hono": "^4.13.5",
+    "react": "^19.2.8",
+    "typescript": "^5.7.0",
+    "zod": "^4.5.4"
+  }
+}

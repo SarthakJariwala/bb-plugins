@@ -22,6 +22,10 @@
     {
       "name": "sprite-keepalive",
       "source": "./bb-plugin-sprite-keepalive"
+    },
+    {
+      "name": "ayu-mirage",
+      "source": "./bb-plugin-ayu-mirage"
     }
   ]
 }
