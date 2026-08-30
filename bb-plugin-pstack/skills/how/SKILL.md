@@ -49,9 +49,9 @@ Call `pstack_get_model_config`, then spawn all explorers in one `pstack_spawn_th
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect all returned thread IDs with `pstack_collect_threads` before synthesis.
+Collect all returned thread IDs with `pstack_collect_threads` before synthesis. Keep the IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
 
-Each explorer gets the same base prompt from `references/explorer-prompt.md` plus a specific exploration angle naming its slice. Each explorer should:
+Each brief points to `references/explorer-prompt.md` and adds the original question plus one compact exploration angle naming its slice. Do not paste the template into the brief. Each explorer should:
 - Start broad: Glob for relevant directories, Grep for key types/interfaces/class names
 - Follow the thread: from an entry point, trace the call chain (callers, callees, data flow, type definitions)
 - Read the actual code, don't guess from file names
@@ -73,7 +73,7 @@ Spawn one visible child thread with `pstack_spawn_threads` that explores and exp
 
 Collect it with `pstack_collect_threads`.
 
-The agent does its own exploration (Glob, Grep, Read) and writes the explanation directly. Read `references/explainer-prompt.md` for the communication style and output format. Same structure, just no explorer findings as input.
+The brief points to `references/explainer-prompt.md` for the communication style and output format. The child does its own exploration (Glob, Grep, Read) and writes the explanation directly. Use the same structure with no explorer findings input.
 
 Proceed to Step 4.
 
@@ -88,7 +88,7 @@ Once all explorers return, spawn one visible child thread with `pstack_spawn_thr
 
 Collect it with `pstack_collect_threads`.
 
-The explainer gets all explorers' findings and writes the human-facing explanation (output format below). Read `references/explainer-prompt.md` for the full prompt template. The explainer reconciles overlapping findings, resolves contradictions, and weaves the slices into a unified picture.
+The explainer gets the explorer thread IDs, compact completion summaries, and relevant file pointers. It reads a detailed child report with `bb thread log <thread-id> --all --format json` when needed instead of receiving full output inline. Read `references/explainer-prompt.md` for the prompt template. The explainer reconciles overlapping findings, resolves contradictions, and weaves the slices into a unified picture.
 
 ### Step 4. Present
 
@@ -120,10 +120,10 @@ Run the full explain flow above (Steps 1-4). You must understand the architectur
 
 After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four Pi threads; `/setup-pstack` can change its models, reasoning levels, and length. Collect every critic before lead judgment.
 
-Read `references/critic-prompt.md` for the prompt template. Each critic gets:
-1. The explanation from Step 1 (so they don't re-explore)
-2. The relevant file paths (so they can read the actual code)
-3. The architectural critique rubric from `references/critique-rubric.md`
+Each brief points to `references/critic-prompt.md` instead of pasting it. Each critic gets:
+1. The explainer thread ID as an artifact pointer, plus a compact orientation
+2. The relevant file paths so it can read the actual code
+3. The path `references/critique-rubric.md`
 
 ### Step 3. Lead Judgment
 

@@ -27,13 +27,13 @@ Open a todolist with one entry per phase before launching anything.
 
 ## Phase B: Fan out
 
-Spawn all N workers in one `pstack_spawn_threads` call with `preset: "general"` and `role: "swarm-workers"`. Use `readOnly: true` for coverage and exploration. Use `workspace: "new-worktree"` for independent repository writers and `workspace: "reuse"` only for read-only work or work intentionally sharing the parent's checkout.
+Spawn all N workers in one `pstack_spawn_threads` call with `preset: "general"` and `role: "swarm-workers"`. Use `readOnly: true` for coverage and exploration. Use `workspace: "new-worktree"` for independent repository writers. A batch may contain at most one declared writable worker using `workspace: "reuse"` or `workspace: "project-default"`.
 
 When a worker must start from a non-default branch, name that branch and checkout procedure in its standalone brief.
 
 Every brief stands alone. Include the goal, scope, exact slice or race arm, how to verify, and what to report. Reports use `PASS`, `ISSUES`, or `BLOCKED` with evidence.
 
-Collect the returned IDs with `pstack_collect_threads`. If a worker drops out, proceed with N-1 and note it.
+Collect the returned IDs with `pstack_collect_threads`. Collection fails the barrier while any requested worker is timed out, blocked, or errored. Recollect, resolve, or replace required workers. Proceed with N-1 only after an explicit `allowPartial: true` waiver, and note the gap.
 
 ## Phase C: Aggregate
 

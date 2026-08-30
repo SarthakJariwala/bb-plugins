@@ -4,19 +4,20 @@
 
 Ceremony must scale with the program. Every gate below prices in coordinator minutes; on cheap near-identical units, collapse it as each section directs rather than paying list price.
 
-Three rules carry the rest.
+Four rules carry the rest.
 
 - Completions are queue events, not interrupts.
-- Every spawn and every resume carries the standing orders verbatim.
+- Every spawn and every resume points to the current standing-orders artifact.
 - The brief is the product. A vague brief fails quietly, because a worker cannot ask you a question.
+- One owner per scope. While children run, the coordinator only coordinates them or works on a disjoint scope. It never investigates or edits delegated scope unless the brief declares an explicit race. It collects required children before dependent work, review, verification, or finalization. A timeout or interrupted collection is unresolved, and read-only advice never substitutes for required implementation delegation.
 
 Open a todolist with the steps below copied in verbatim. A step you skip stays listed with `skip: <reason>`.
 
 #### Roles and placement
 
 - **Coordinator (this chat).** Frames, authors briefs, drains the inbox, owns the human report, and makes judgment calls. It never authors or edits code: conflicted merges, restacks, and code changes are child-thread tasks. Mechanically landing a verified unit (fast-forward or clean cherry-pick of a worker's commit, then push) is bookkeeping the coordinator may do itself when local git is cheap; queueing finished work behind an idle stacker is how a deadline harvests nothing. Spawn only through `pstack_spawn_threads`, collect through `pstack_collect_threads`, send follow-ups with `bb thread tell`, and leave terminal workers visible for inspection. Use `pstack_finish_threads` only when the user explicitly asks to archive them. State reads and writes go through `scripts/orch/orch.ts` at drain points, one command in and one line out, to conserve context. The orch CLI itself never spawns, waits, or wakes anything.
-- **Sub-coordinator.** A durable visible Pi child thread, one per track, and only when the program exceeds what one coordinator can drain. A track the coordinator can drain itself needs no middle layer: each nested layer re-pays a full orientation preamble, and a blocking sub-coordinator gives the parent another place to wait. Spawn it with `preset: "poteto-agent"`, `role: "hardest-tasks"`, `workspace: "reuse"`, and keep it unarchived while the track is active. It owns its track's units and boards, authors worker briefs, and spawns its own visible workers and verifiers when `canSpawnChild` permits. It rolls up aggregates at wave boundaries and never forwards raw child reports. Cap in-flight children at what one drain can process, roughly ten, as a rolling window; never as blocking batches, which cost the slowest child of every batch.
-- **Worker / verifier.** Always a visible Pi child thread. Writers use `workspace: "new-worktree"`; read-only investigators and work that explicitly needs the parent's runtime use `workspace: "reuse"`. Briefs inline what children need or point at repository paths; they cannot read the coordinator's thread-storage store. Prefer fewer, broader workers and one writer per worktree or branch (principle-separate-before-serializing-shared-state). Run a unit's verifier on a different configured model family from its worker when the Pi catalog permits it.
+- **Sub-coordinator.** A durable visible Pi child thread, one per track, and only when the program exceeds what one coordinator can drain. A track the coordinator can drain itself needs no middle layer: each nested layer re-pays a full orientation preamble, and a blocking sub-coordinator gives the parent another place to wait. Spawn it with `preset: "poteto-agent"`, `role: "hardest-tasks"`, `readOnly: true`, `workspace: "reuse"`, and keep it unarchived while the track is active. It owns its track's units and boards, authors worker briefs, and spawns its own visible workers and verifiers when `canSpawnChild` permits. It rolls up aggregates at wave boundaries and never forwards raw child reports. Cap in-flight children at what one drain can process, roughly ten, as a rolling window; never as blocking batches, which cost the slowest child of every batch.
+- **Worker / verifier.** Always a visible Pi child thread. Writers use `workspace: "new-worktree"`; read-only investigators and work that explicitly needs the parent's runtime use `workspace: "reuse"`. Briefs use file, PR, thread, and artifact pointers with compact grounding. They never inline large payloads. Children cannot read the coordinator's thread-storage store, so publish required context at a path or URL their environment can read. Prefer fewer, broader workers and one writer per worktree or branch (principle-separate-before-serializing-shared-state). Run a unit's verifier on a different configured model family from its worker when the Pi catalog permits it.
 
 Depth stays at coordinator, track, worker. Author the track decomposition per project (build, landing, and verification are common cuts, not a required shape); hard-coded swarm trees were tried and parked as too rigid.
 
@@ -24,7 +25,7 @@ Depth stays at coordinator, track, worker. Author the track decomposition per pr
 
 Create `orchestrate/<project-slug>/` under `$BB_THREAD_STORAGE`, the coordinator thread's persistent storage directory. Every file has exactly one writer; owners publish facts, readers aggregate at read time. Use `bun scripts/orch/orch.ts` for bookkeeping, written below as `orch`, while its canonical plain TSV and JSON stay readable without the CLI.
 
-- `preferences.md` is the standing-orders register: numbered lines, one constraint each (model policy, stack shape and count, verification bar, forbidden paths, escalation policy). Paste it verbatim into every spawn and every resume; directives decay across resumes, and each dropped one costs a human turn. When you catch yourself restating an instruction, append the line before you act (principle-encode-lessons-in-structure).
+- `preferences.md` is the standing-orders register: numbered lines, one constraint each (model policy, stack shape and count, verification bar, forbidden paths, escalation policy). Publish a read-only copy at an artifact path every child can access, and point every spawn and resume to it. Inline only the few unit-critical constraints needed to ground the pointer. Directives decay across resumes, and each dropped one costs a human turn. When you catch yourself restating an instruction, append the line before you act (principle-encode-lessons-in-structure).
 - `overview.md` is the durable PR and issue DB. Append; never rewrite wholesale per event.
 - `units.tsv` has one row per unit: id, track, state, branch, PR, head SHA, brief path. Update rows in place.
 - `frontier.json` is the computed merge frontier, per Stack safety.
@@ -35,34 +36,34 @@ Create `orchestrate/<project-slug>/` under `$BB_THREAD_STORAGE`, the coordinator
 
 #### The brief
 
-Your prompts to child threads are your only product, and a sloppy brief compounds into slop across the whole tree. Every spawn carries all of it; a field you cannot fill is a unit you have not scoped yet.
+Your prompts to child threads are your only product, and a sloppy brief compounds into slop across the whole tree. Every spawn carries compact grounding and resolvable artifact pointers; a field you cannot fill is a unit you have not scoped yet.
 
 ```
 GOAL         one sentence, the outcome, executable by a stranger with no chat access
 SCOPE        paths this unit may write; paths it may not; its exclusive worktree or branch
-CONTEXT      pointers to files and PRs; upstream reports pasted in full when this unit
-             depends on them, because workers cannot see siblings
+CONTEXT      pointers to files, PRs, child threads, and published reports; compact grounding only
+             because large payloads stay in artifacts even when this unit depends on them
 ACCEPTANCE   checkable criteria, one per line
 VERIFY       exact commands or the control-skill path, plus known gotchas
 TIMEBOX      rough cap on runtime; on expiry, return partial findings and stop rather than run on
 FORBIDDEN    no gt, no rebase, no force-push, no fixes outside scope, plus unit-specific bans
 REPORT       status, branch, head SHA, PRs, verdict, what you actually ran, deviations,
              suggested follow-ups
-STANDING     <preferences.md pasted verbatim>
+STANDING     <published preferences.md artifact pointer plus unit-critical constraints>
 ```
 
-Size the brief to the unit. A one-command unit gets the template collapsed to a paragraph that still names goal, scope, the verify command, and the report shape; a 4KB scaffold around a two-line edit costs more to write and obey than the edit. Every child prompt and every `bb thread tell` follow-up pastes the standing orders verbatim because child threads cannot read the coordinator's thread-storage store.
+Size the brief to the unit. A one-command unit gets the template collapsed to a paragraph that still names goal, scope, the verify command, and the report shape; a 4KB scaffold around a two-line edit costs more to write and obey than the edit. Every child prompt and every `bb thread tell` follow-up points to the published standing-orders artifact. Never paste a large report or transcript into the brief.
 
 A sub-coordinator brief adds its track boundary and unit list, its spawn budget with the new-worktree default and reuse exceptions, the drain protocol, and the rollup format (per child: name, status, PR, head SHA, verdict, one line; plus track status and frontier delta).
 
-A dependency is a context relay, not just ordering: undeclared upstream context makes the worker guess. Missing fields are a refuse-to-spawn condition. Audit one sampled worker brief per sub-coordinator per wave, concurrently with the wave it samples, never as a gate in front of it; a failing brief stops that track and fixes the sub-coordinator's instructions, not just the worker, because brief quality decays late in a run. Never resume-chain a brief; respawn fresh with consolidated scope.
+A dependency is a context relay, not just ordering: undeclared upstream context makes the worker guess. Publish upstream reports as artifacts and link them with a compact statement of why they matter. Missing fields are a refuse-to-spawn condition. Audit one sampled worker brief per sub-coordinator per wave, concurrently with the wave it samples, never as a gate in front of it; a failing brief stops that track and fixes the sub-coordinator's instructions, not just the worker, because brief quality decays late in a run. Never resume-chain a brief; respawn fresh with consolidated scope.
 
 #### Steps
 
 1. **Frame.** State the done predicate as something countable ("all 126 units merged, each ledger-verified `unit-test-verified` or better"). Quantify scope: units, rough effort, expected stacks, and the wall-clock budget. If one agent could finish inside that budget, stop here and run Autonomous run instead. Collapsing must not depend on another document being present: it means do the work directly in this session, plain workers where they help, verification inline, landing as you go, and none of the store, register, or pilot machinery below. Schedule landing against the budget: by roughly 70% of it, stop spawning and land what is verified, because finished-but-unlanded work counts as zero. Name the tracks per project. A contested decomposition or one-way door goes through the arena skill before the pilot. Present the framing once; reversible prep proceeds without waiting.
 2. **Install the runtime.** Run `orch init`. Open the trail via the show-me-your-work skill, write the standing orders before any spawn, and seed `frontier.json` from existing PRs with `orch frontier set --repo <repo-dir>`.
 3. **Pilot.** Push one unit through the whole path: brief, worker, verification, stack entry, ledger row, merge. The pilot exists to falsify the brief template, the verify recipe, and the unit size while that costs one agent instead of fifty. Fix the contract from pilot evidence before any fan-out. Scale the pilot to the unit: on programs of near-identical cheap units, the first unit is the pilot, run as a normal unit with its verify command inline, and fan-out starts the moment it lands. The dedicated pilot pipeline (separate verifier agent, audit gate) is for expensive or novel unit shapes, not for clone-units where a serialized pilot has nothing to falsify.
-4. **Scale.** Spawn a rolling window of workers up to the in-flight cap, refilling as children finish; blocking batches pay the slowest child of every batch. Spawn track sub-coordinators only past the one-drain threshold in Roles. Recompute ready work after each drain; relay upstream reports into downstream briefs; keep sibling communication upward only. The sampled brief audit runs alongside the wave it samples and stops the next refill on failure, not the current one.
+4. **Scale.** Spawn a rolling window of workers up to the in-flight cap, refilling as children finish; blocking batches pay the slowest child of every batch. Spawn track sub-coordinators only past the one-drain threshold in Roles. Recompute ready work after each drain; relay upstream report pointers and compact grounding into downstream briefs; keep sibling communication upward only. The sampled brief audit runs alongside the wave it samples and stops the next refill on failure, not the current one.
 5. **Drain.** Run the queue discipline below at every drain point.
 6. **Land.** Landing is continuous, never a terminal phase: integration starts with the first verified unit and runs alongside the remaining waves. On heavy repos the stacker is a standing role from wave one, integrating as units verify; on repos where local git is cheap, the coordinator lands verified units itself per Roles. Keep the frontier green before upper-stack work; Stack safety governs. Advance `frontier.json` only on merge or reported new head SHAs.
 7. **Close.** Drain the final inbox, reconcile every spawned child thread ID to a terminal row (done, abandoned, zombie-reconciled), confirm the predicate on the real artifact, confirm every landed PR has a verdict for its current head SHA, audit the trail per show-me-your-work including its cross-model review, encode recurring corrections into `preferences.md` or the brief template. Leave the store intact; it is the postmortem.
@@ -73,7 +74,7 @@ A dependency is a context relay, not just ordering: undeclared upstream context 
 - Drain in batches at four points: the end of a critical section, a track rollup, a frontier watcher wake (arm it with a BB automation and a long heartbeat fallback), and before a human report. Begin each batch with `orch inbox drain`. Arrivals during a drain wait for the next one.
 - Critical sections you finish first: authoring a brief, a stack operation, a conflict decision, writing a gate, updating ledger or frontier.
 - Each drain classifies every pointer (landed, needs-verify, failed, zombie, noise), writes the resulting rows through `orch unit add`, `orch unit set`, and `orch ledger record`, runs `orch status`, then spawns the next wave in one `pstack_spawn_threads` call.
-- Account for every spawned child at its track's rollup: arrived, respawned, or its scope explicitly absorbed. Silently redoing a missing child's work hides both the wasted spend and the coverage gap its result existed to close.
+- Account for every spawned child at its track's rollup: arrived, respawned, or explicitly waived with `allowPartial: true` after its scope is no longer required. A timed-out or interrupted collection is unresolved and gets recollected. Silently redoing a missing child's work hides both the wasted spend and the coverage gap its result existed to close.
 - A drain turn ends with the three lines from `orch status`: counts against the states, what changed, gates open. Detail lives in `status.md`; the full reply contract applies at checkpoints and close.
 
 #### Stack safety

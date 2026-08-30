@@ -10,9 +10,11 @@ You are writing an architectural explanation for a senior engineer. Multiple exp
 
 > {QUESTION}
 
-## Explorer Findings
+## Explorer evidence
 
-{EXPLORER_FINDINGS_ALL}
+{EXPLORER_THREAD_IDS_AND_COMPACT_SUMMARIES}
+
+Read a detailed report when needed with `bb thread log <thread-id> --all --format json`. Do not ask the parent to inline full explorer output.
 
 ## Instructions
 

@@ -82,7 +82,9 @@ That's the whole prompt. [`/bro`](../../skills/bro/SKILL.md) restates the last m
 
 - **Enumerating skills in the prompt.** "use /how then /architect then /arena" reorders steps the playbook already sequences. State the goal and constraints. Name a skill only to override a default.
 - **A vague finish condition.** "make it better" gives an autonomous BB run nothing to check. Give a command or artifact that can pass or fail.
-- **Parallel child threads in one worktree.** They overwrite each other and the diff becomes archaeology. Say "own worktree per attempt" and the isolation is free.
+- **Parallel child threads in one worktree.** They overwrite each other and the diff becomes archaeology. Pstack rejects two declared shared-workspace writers in one batch. Give each concurrent writer `new-worktree`.
+- **Working a delegated scope before collection.** Spawn is asynchronous, but scope ownership is not. Coordinate children or work elsewhere until every required child completes. A timeout stays unresolved.
+- **Inlining logs and full child reports.** Point briefs to files and artifacts. BB already posts completion summaries, so fetch full outputs only when those pointers and summaries are not enough.
 - **Using `/arena` for coverage.** `/arena` repeats one design or code brief, then picks a base and grafts the best parts. `/swarm` partitions slices or declared race arms and aggregates one report.
 - **Accepting every review comment.** Bots and humans both file real catches and noise in one list. `/interrogate` sorts findings into act-on and dismissed buckets with reasons, and you can override either way.
 - **Guessing a Pi model ID.** `/setup-pstack` detects the real catalog and supported reasoning levels. Use those values; stale or invented IDs break delegation. [Setup](./01-setup.md) covers the roles.

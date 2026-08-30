@@ -34,11 +34,11 @@ Spawn all N visible child threads in one `pstack_spawn_threads` call. Give each 
 
 The rationale is mandatory. Without it, the parent cannot tell whether a candidate's structure is principled or accidental, which makes Phase E grafting unreliable. Each rationale names the alternatives the candidate considered and what it rejected.
 
-If a candidate fails to produce output, proceed with N-1 and note the dropout in the synthesis record.
+If a candidate fails to produce output, recollect or replace it when its result is required. Proceed with N-1 only after an explicit `allowPartial: true` collection waiver, and note the dropout in the synthesis record.
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one visible judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's Phase D reading, not with candidates still writing. Collect it before the final pick.
+After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one visible judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. Collect it before Phase D. The parent does not pre-judge the delegated scope while the judge runs.
 
 ## Phase D: Pick a base
 

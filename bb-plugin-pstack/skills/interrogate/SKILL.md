@@ -45,13 +45,13 @@ Launch all reviewers in one `pstack_spawn_threads` call. For each reviewer set:
 
 If a configured model is unavailable, stop that reviewer, report the stale role selection, and ask the user to run `/setup-pstack`; never guess a replacement model. Collect all successfully spawned reviewers with `pstack_collect_threads`.
 
-Read `references/reviewer-prompt.md` and fill in the template with:
+Point each brief to `references/reviewer-prompt.md` and provide these compact substitutions:
 1. The stated intent
-2. The diff or file contents
-3. The review rubric from `references/rubric.md`
-4. The code-quality lens from `references/code-quality-review.md`
+2. A git ref, diff command, or file pointer. Do not inline a large diff or file payload.
+3. The path `references/rubric.md`
+4. The path `references/code-quality-review.md`
 
-The same filled template goes to all reviewers, so every model applies the code-quality lens.
+Every reviewer receives the same artifact pointers and compact substitutions, so every model applies the code-quality lens without duplicated payloads.
 
 Each reviewer produces structured findings as described in the prompt template.
 

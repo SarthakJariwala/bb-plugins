@@ -165,7 +165,8 @@ function PstackSettings() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Every pstack worker is a visible BB child thread on Pi. Pick one model for scalar roles.
+          Every pstack worker is a visible BB child thread on Pi. Spawns return immediately, and
+          required workers must be collected before dependent work. Pick one model for scalar roles.
           Panel roles launch one child per entry.
         </p>
         <div className="flex shrink-0 gap-2">

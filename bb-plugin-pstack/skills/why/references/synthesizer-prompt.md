@@ -16,9 +16,13 @@ You are answering a "why" question about a piece of code by synthesizing finding
 
 **Key symbols:** {SYMBOLS}
 
-## Investigator Findings
+## Investigator evidence
 
-{ALL_INVESTIGATOR_FINDINGS}
+Child thread IDs and compact category results:
+
+{INVESTIGATOR_THREAD_IDS_AND_SUMMARIES}
+
+Read a detailed report when needed with `bb thread log <thread-id> --all --format json`. Do not ask the parent to inline full investigator output.
 
 ## Sources That Weren't Searched
 

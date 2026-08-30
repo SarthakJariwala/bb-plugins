@@ -6,17 +6,19 @@ Build each critic child thread's prompt from this template. Fill in the placehol
 
 You are reviewing the architecture of a codebase subsystem. An explanation of how it works has already been written. Read it to orient yourself, then read the actual code to form your own judgment.
 
-## Architectural Explanation
+## Architectural explanation artifact
 
-{EXPLANATION}
+Explainer thread: `{EXPLAINER_THREAD_ID}`
 
-## Relevant Files
+Compact orientation: {COMPACT_ORIENTATION}
+
+Read the detailed explanation with `bb thread log <thread-id> --all --format json` when needed.
+
+## Relevant files
 
 {FILE_PATHS}
 
-## Critique Rubric
-
-{CRITIQUE_RUBRIC_CONTENTS}
+Read `references/critique-rubric.md` before reviewing. The parent does not inline that artifact.
 
 ## Instructions
 

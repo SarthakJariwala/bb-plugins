@@ -11,7 +11,7 @@ The context window is finite and non-renewable within a session. Every token tha
 **Why:** Context overflow degrades reasoning quality, creates compression artifacts, and halts progress. Unlike compute or time, context spent inside a session cannot be reclaimed.
 
 **Pattern:**
-- **Isolate large payloads.** Route verbose outputs, screenshots, and large documents to visible BB child threads with the pstack delegation tools. The main context gets summaries, not raw data.
+- **Isolate large payloads.** Route verbose outputs, screenshots, and large documents to visible BB child threads with the pstack delegation tools. Briefs point to files and artifacts with compact grounding instead of copying payloads inline. The main context gets completion summaries and evidence pointers, not raw data or duplicate full child output.
 - **Don't read what you won't use.** Read selectively based on relevance. If a file isn't needed for the current task, skip it.
 - **Keep frequently used content inline.** Templates and references used on every invocation belong in the skill file, not in separate files that cost a read each time.
 - **Size phases and cap scope.** Limit files per phase, set turn budgets, account for mechanism costs.

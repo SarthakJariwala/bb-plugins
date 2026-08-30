@@ -32,7 +32,7 @@ Do not list or search unrelated threads. If export fails, write a tight digest o
 
 ### 2. Spawn three reviewers in parallel
 
-Call `pstack_get_model_config`, then make one `pstack_spawn_threads` call with three workers. Use `preset: "general"`, `readOnly: false`, and `workspace: "reuse"`; the prompt forbids writes, while the non-read-only tool posture preserves MCP access.
+Call `pstack_get_model_config`, then make one `pstack_spawn_threads` call with three workers. Use `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. Give each worker its named lens as a distinct scope.
 
 | Lens | `role` | Prompt template |
 |---|---|---|
@@ -40,11 +40,11 @@ Call `pstack_get_model_config`, then make one `pstack_spawn_threads` call with t
 | Tooling | `reflect-tooling` | `references/tooling-reviewer.md` |
 | Divergent | `reflect-judgment` | `references/divergent-reviewer.md` |
 
-Pass each template verbatim, substituting the thread-log path or digest where marked. Collect all three IDs with `pstack_collect_threads`.
+Give each child the matching template path and the thread-log artifact path or digest. Do not paste the template or log into the brief. Collect all three IDs with `pstack_collect_threads`. Keep their thread IDs as evidence pointers; do not fetch duplicate full outputs into the parent.
 
 ### 3. Synthesize
 
-Spawn one child with `pstack_spawn_threads`, using `preset: "general"`, `role: "reflect-judgment"`, `readOnly: false`, and `workspace: "reuse"`. The synthesizer's quality check includes spot-verifying citations, which can require MCP access. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. Collect it with `pstack_collect_threads`; it returns a structured Accepted / Rejected / Backlog list.
+Spawn one child with `pstack_spawn_threads`, using `preset: "general"`, `role: "reflect-judgment"`, `readOnly: true`, and `workspace: "reuse"`. The synthesizer's quality check includes spot-verifying citations. Point it to `references/synthesizer.md`, the three reviewer thread IDs, and the thread-log artifact path. Do not inline those payloads. It can read the named child logs with `bb thread log <thread-id> --all --format json`. Collect it with `pstack_collect_threads`; it returns a structured Accepted / Rejected / Backlog list.
 
 ### 4. Structural enforcement check
 

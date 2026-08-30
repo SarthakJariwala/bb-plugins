@@ -118,17 +118,19 @@ Call `pstack_get_model_config`, then launch all matching investigators in one `p
 Worker config for each:
 - `preset`: `general`
 - `role`: `why-investigators`
-- `readOnly`: `false`, because the child may need MCP tools even though its brief forbids writes
+- `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect every returned thread ID with `pstack_collect_threads` before synthesis.
+The pstack read-only worker prompt forbids writes without removing the child's evidence tools. Collect every returned thread ID with `pstack_collect_threads` before synthesis. Keep the thread IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
 
-Each investigator gets:
-1. The base prompt from `references/investigator-prompt.md`
-2. The category playbook `references/sources/<source>.md` for the selected MCP, adapted from the examples in `references/source-playbook.md`
-3. The cross-cutting `references/sources/incident-postmortem.md` **if the target code looks defensive** (null checks, retry logic, timeout handling, rate limiting, feature flags, egress guards, OOM handlers)
+Each investigator gets compact grounding plus pointers to:
+1. `references/investigator-prompt.md`
+2. `references/sources/<source>.md` for the selected MCP, chosen through `references/source-playbook.md`
+3. `references/sources/incident-postmortem.md` **if the target code looks defensive** (null checks, retry logic, timeout handling, rate limiting, feature flags, egress guards, OOM handlers)
 4. The code anchor from Step 2 (file paths, symbols, commit hashes, PR numbers, ticket IDs)
 5. The user's original question
+
+Do not paste the referenced files or source payloads into the brief.
 
 ### Investigator roster. One per available evidence category
 
@@ -167,17 +169,19 @@ Spawn one synthesizer with `pstack_spawn_threads`:
 
 - `preset`: `general`
 - `role`: `why-synthesizer`
-- `readOnly`: `false`, because citation spot-checks can require MCP access even though the brief forbids writes
+- `readOnly`: `true`
 - `workspace`: `reuse`
 
 Collect it with `pstack_collect_threads`.
 
 The synthesizer gets:
-1. The investigator findings, including any null results and any categories skipped with justification
+1. The investigator thread IDs and compact category results, including null results and skipped categories. It reads a detailed report from the named child log when needed instead of receiving full output inline.
 2. The code anchor from Step 2 (file paths, symbols, commit hashes, PR numbers, ticket IDs)
 3. The user's original question
-4. The epistemics framework from `references/epistemics.md`
-5. The synthesizer prompt template from `references/synthesizer-prompt.md`
+4. A pointer to `references/epistemics.md`
+5. A pointer to `references/synthesizer-prompt.md`
+
+Do not paste either reference into the brief.
 
 Its job is the final output: a confidence-weighted, evidence-cited narrative with clearly separated "what we know" and "what we're inferring" sections, plus honest acknowledgment of gaps and null-result sources.
 

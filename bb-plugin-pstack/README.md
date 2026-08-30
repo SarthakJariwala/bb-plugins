@@ -64,7 +64,13 @@ Agents receive these native plugin tools:
 - `pstack_collect_threads`
 - `pstack_finish_threads`
 
-Workers are parented to the calling thread and visible in normal thread navigation, like the Review plugin's child threads. Collection leaves completed workers visible by default. Pass `cleanup: true` to `pstack_collect_threads`, or call `pstack_finish_threads`, only when those threads should be archived and stopped.
+Workers are parented to the calling thread and visible in normal thread navigation. Spawn returns immediately with thread IDs. A batch may contain only one writable worker using a shared `reuse` or `project-default` workspace; additional writers need `new-worktree`. This preflight runs before any child is spawned.
+
+One owner holds each scope. While children run, the parent coordinates them or works on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares an explicit race. The parent collects every required child before dependent work, review, verification, or finalization. A timeout or interrupted collection remains unresolved, and read-only advice does not satisfy a playbook's mandatory implementation delegation. Briefs point to files and artifacts and keep grounding compact instead of inlining large payloads.
+
+`pstack_collect_threads` is a required barrier by default. It returns a `complete` aggregate and discriminated `completed`, `timed-out`, `blocked`, or `error` outcomes. Any incomplete worker fails the tool unless the caller explicitly sets `allowPartial: true`. BB already posts child-completion summaries, so collection does not fetch or return full outputs unless `includeOutputs: true` is set as a fallback.
+
+Collection leaves completed workers visible by default. Pass `cleanup: true` to clean up completed workers during collection, or call `pstack_finish_threads` when the user explicitly requests cleanup. Collection never cleans up timed-out, blocked, or error workers, so they can be recollected or resolved.
 
 ## Develop
 

@@ -71,7 +71,15 @@ If you run several agents against one repository, they will fight over the worki
 /poteto-mode new task. branch off <base> in a fresh worktree, then port the parser change there.
 ```
 
-Each task in its own branch and worktree means no agent stomps another's files. The [Opening a PR playbook](../../skills/poteto-mode/playbooks/opening-a-pr.md) already works from a worktree for code changes, so mostly you only say this when a specific base or location matters.
+Each task in its own branch and worktree means no agent stomps another's files. Pstack rejects a spawn batch with two declared writers sharing `reuse` or `project-default` before it creates any child. One shared writer plus isolated `new-worktree` writers is valid. The [Opening a PR playbook](../../skills/poteto-mode/playbooks/opening-a-pr.md) already works from a worktree for code changes, so mostly you only say this when a specific base or location matters.
+
+## Let the child own its scope
+
+Spawning is asynchronous. The parent gets thread IDs immediately and can coordinate the children or work on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares a race. It collects every required child before dependent work, review, verification, or finalization. A timeout or interrupted collection means the work is still unresolved.
+
+Collection is a required barrier by default. A timed-out, blocked, or errored child fails collection until the parent recollects, resolves, or replaces it. `allowPartial: true` is an explicit waiver, not a default. Completed children stay visible. BB already posts their completion summaries, so full child output is fetched only as a fallback.
+
+Briefs stay compact. They point to files and artifacts instead of copying large logs, diffs, or reports into every child prompt.
 
 Worktrees accumulate. When disk gets tight, ask:
 
