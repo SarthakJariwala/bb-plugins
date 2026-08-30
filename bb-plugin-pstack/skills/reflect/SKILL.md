@@ -1,6 +1,6 @@
 ---
 name: reflect
-description: Spawn three parallel hidden BB child threads over the active thread log, surface learnings, and route each to a concrete edit on an existing skill. Use when the user says reflect.
+description: Spawn three parallel visible BB child threads over the active thread log, surface learnings, and route each to a concrete edit on an existing skill. Use when the user says reflect.
 disable-model-invocation: true
 ---
 

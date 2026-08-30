@@ -28,7 +28,7 @@ Update mode changes the rest of the flow:
 
 List recent BB threads only in the active project with `bb thread list --project "$BB_PROJECT_ID" --include-hidden --json`. Do not inspect another project unless the user asks.
 
-Survey recent threads within that scope for recurring patterns. Divide the candidate thread IDs into slices, then run multiple hidden child threads in parallel with one `pstack_spawn_threads` call. Use `preset: "general"`, `role: "swarm-workers"`, `readOnly: true`, and `workspace: "reuse"`. Each miner reads only its assigned IDs through `bb thread log <id> --all --format json`, looks for the signals below, and returns a short structured list with thread-ID evidence pointers. Collect them with `pstack_collect_threads`. Default signals worth hunting:
+Survey recent threads within that scope for recurring patterns. Divide the candidate thread IDs into slices, then run multiple visible child threads in parallel with one `pstack_spawn_threads` call. Use `preset: "general"`, `role: "swarm-workers"`, `readOnly: true`, and `workspace: "reuse"`. Each miner reads only its assigned IDs through `bb thread log <id> --all --format json`, looks for the signals below, and returns a short structured list with thread-ID evidence pointers. Collect them with `pstack_collect_threads`. Default signals worth hunting:
 
 - Response preferences (length, tone, format, "dumb it down" corrections)
 - Delegation habits (child threads, models, specialized workflows, parallelism)

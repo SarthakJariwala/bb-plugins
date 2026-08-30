@@ -57,7 +57,7 @@ The verification principles define what counts as proof:
 
 The delegation principles keep parallel work sane:
 
-- [Guard the Context Window](../../skills/principle-guard-the-context-window/SKILL.md) routes bulk reading to hidden BB child threads and keeps findings in the main chat.
+- [Guard the Context Window](../../skills/principle-guard-the-context-window/SKILL.md) routes bulk reading to visible BB child threads and keeps findings in the main chat.
 - [Never Block on the Human](../../skills/principle-never-block-on-the-human/SKILL.md) proceeds on reversible work and presents the result.
 
 And one meta principle:

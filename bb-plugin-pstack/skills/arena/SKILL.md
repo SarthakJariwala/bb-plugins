@@ -30,7 +30,7 @@ The N candidates will receive the same prompt, so the prompt is the contract. Ge
 
 ## Phase B: Fan out
 
-Spawn all N hidden child threads in one `pstack_spawn_threads` call. Give each worker `role: "arena-runners"`, its zero-based `selectionIndex`, `preset: "general"`, the task, the path to shared grounding, its own output path, and instructions to produce both the artifact and a short rationale. Use `workspace: "new-worktree"` for repository writers. Collect all runner IDs with `pstack_collect_threads` before cross-judging.
+Spawn all N visible child threads in one `pstack_spawn_threads` call. Give each worker `role: "arena-runners"`, its zero-based `selectionIndex`, `preset: "general"`, the task, the path to shared grounding, its own output path, and instructions to produce both the artifact and a short rationale. Use `workspace: "new-worktree"` for repository writers. Collect all runner IDs with `pstack_collect_threads` before cross-judging.
 
 The rationale is mandatory. Without it, the parent cannot tell whether a candidate's structure is principled or accidental, which makes Phase E grafting unreliable. Each rationale names the alternatives the candidate considered and what it rejected.
 
@@ -38,7 +38,7 @@ If a candidate fails to produce output, proceed with N-1 and note the dropout in
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one hidden judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's Phase D reading, not with candidates still writing. Collect it before the final pick.
+After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one visible judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's Phase D reading, not with candidates still writing. Collect it before the final pick.
 
 ## Phase D: Pick a base
 

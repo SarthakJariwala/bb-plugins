@@ -70,7 +70,7 @@ The contract above drives one task to one finish condition. Some nights hold mor
 /poteto-mode autopilot these five changes but stack them, don't ship. i'll land the stack in the morning.
 ```
 
-[Orchestrate](../../skills/poteto-mode/playbooks/orchestrate.md) is for a program that outlives any single agent: multi-day, many stacked PRs, fleets of hidden BB child threads under one standing coordinator thread. The coordinator authors briefs, collects what its children finish, keeps the lowest unmerged PR green, and never writes code itself. It's deliberately heavy machinery. If one agent could finish the work in a session, the playbook itself routes you back to the overnight contract above:
+[Orchestrate](../../skills/poteto-mode/playbooks/orchestrate.md) is for a program that outlives any single agent: multi-day, many stacked PRs, fleets of visible BB child threads under one standing coordinator thread. The coordinator authors briefs, collects what its children finish, keeps the lowest unmerged PR green, and never writes code itself. It's deliberately heavy machinery. If one agent could finish the work in a session, the playbook itself routes you back to the overnight contract above:
 
 ```text
 /poteto-mode orchestrate the store migration. own it until every package is converted and merged. i'll check in twice a day.

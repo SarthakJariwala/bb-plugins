@@ -52,7 +52,7 @@ function PstackInfo() {
     <div className="space-y-2 text-sm">
       <p>
         pstack is by Lauren Tan. This BB port keeps the original workflows while running delegated
-        work through hidden Pi child threads.
+        work through visible Pi child threads.
       </p>
       <UrlLink
         href="https://github.com/cursor/plugins/tree/main/pstack"
@@ -165,7 +165,7 @@ function PstackSettings() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Every pstack worker is a hidden BB child thread on Pi. Pick one model for scalar roles.
+          Every pstack worker is a visible BB child thread on Pi. Pick one model for scalar roles.
           Panel roles launch one child per entry.
         </p>
         <div className="flex shrink-0 gap-2">

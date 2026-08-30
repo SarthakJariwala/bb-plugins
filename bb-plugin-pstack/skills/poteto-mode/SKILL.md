@@ -63,7 +63,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 
 **Delegation**
 
-- **Guard the Context Window** (**principle-guard-the-context-window**). Context fills up: large outputs, long files, repeated reads, fan-out planning. Route bulk to hidden BB child threads, keep summaries in the main thread.
+- **Guard the Context Window** (**principle-guard-the-context-window**). Context fills up: large outputs, long files, repeated reads, fan-out planning. Route bulk to visible BB child threads, keep summaries in the main thread.
 - **Never Block on the Human** (**principle-never-block-on-the-human**). Tempted to ask "should I do X?" on reversible work. Proceed, present the result, let the human course-correct.
 
 **Meta**
@@ -80,13 +80,13 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 
 **No is an acceptable answer.** Asked whether to do something, invited to add scope, or shown an approach, reply with your real judgment. Decline, push back, or say "this doesn't earn its place" when true. A recommendation is a judgment, not a validation. Agreement is not the default, candor over sycophancy.
 
-## Background child threads
+## Child threads
 
-**Use hidden BB child threads for every delegation.** Call `pstack_spawn_threads` with `preset: "poteto-agent"` for code-writing delegates and ad-hoc helpers. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) deliberately use `preset: "general"` for independent review; respect what each skill prescribes. Batch independent workers in one call, then collect them with `pstack_collect_threads`. Give concurrent writers separate `new-worktree` workspaces.
+**Use visible BB child threads for every delegation.** Call `pstack_spawn_threads` with `preset: "poteto-agent"` for code-writing delegates and ad-hoc helpers. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) deliberately use `preset: "general"` for independent review; respect what each skill prescribes. Batch independent workers in one call, then collect them with `pstack_collect_threads`. Give concurrent writers separate `new-worktree` workspaces.
 
 **Every child runs through the `pi` provider.** Before fan-out, call `pstack_get_model_config`; `/setup-pstack` and the plugin Settings UI own the per-role model and reasoning choices. Defaults use `openai-codex/gpt-5.6-sol` at `xhigh` for fast code and at `max` for prose, judgment, and precisely specified hard work. Code delegates tier by difficulty. Use the `hardest-tasks` role for cross-cutting design, gnarly concurrency, and subtle algorithms. Use the named playbook role for feature, refactoring, bug, performance, and hillclimb work. Never use a provider-native child thread or read Cursor's model-rule file.
 
-You own every child thread's work. Review the diff and write your own summary; do not pass through its report. Follow-up chains silently lose standing directives, so prefer a fresh child with consolidated scope over trusting a "done" summary. A second opinion is the same prompt in another configured child. Agreement is high-signal. Archive and stop completed hidden children through `pstack_collect_threads` or `pstack_finish_threads`.
+You own every child thread's work. Review the diff and write your own summary; do not pass through its report. Follow-up chains silently lose standing directives, so prefer a fresh child with consolidated scope over trusting a "done" summary. A second opinion is the same prompt in another configured child. Agreement is high-signal. Collection leaves completed children visible so the user can inspect them. Use `pstack_finish_threads` only when the user explicitly asks to archive and stop them.
 
 ## Writing the reply
 

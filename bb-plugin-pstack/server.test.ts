@@ -28,7 +28,7 @@ describe("pstack plugin", () => {
     await harness.lifecycle.dispose();
   });
 
-  it("spawns hidden Pi child threads with the configured role", async () => {
+  it("spawns visible Pi child threads with the configured role", async () => {
     const spawn = vi.fn(async () =>
       makeThreadResponse({
         id: "thr_child",
@@ -36,7 +36,7 @@ describe("pstack plugin", () => {
         parentThreadId: "thr_parent",
         providerId: "pi",
         status: "active",
-        visibility: "hidden",
+        visibility: "visible",
       }),
     );
     const { bb, harness } = createFakePluginHost({
@@ -88,10 +88,50 @@ describe("pstack plugin", () => {
         providerId: "pi",
         model: "openai-codex/gpt-5.6-sol",
         reasoningLevel: "xhigh",
-        visibility: "hidden",
+        visibility: "visible",
         environment: { type: "reuse", environmentId: "env_test" },
       }),
     );
+
+    await harness.lifecycle.dispose();
+  });
+
+  it("keeps collected child threads visible unless cleanup is explicit", async () => {
+    const archive = vi.fn(async () => undefined);
+    const stop = vi.fn(async () => undefined);
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "pstack",
+      sdk: {
+        threads: {
+          get: async () =>
+            makeThreadResponse({
+              id: "thr_child",
+              projectId: "proj_test",
+              parentThreadId: "thr_parent",
+              status: "idle",
+              visibility: "visible",
+            }),
+          output: async () => ({ output: "done" }),
+          interactions: { list: async () => [] },
+          archive,
+          stop,
+        },
+      },
+    });
+    await plugin(bb);
+
+    await harness.behavior.callAgentTool("pstack_collect_threads", {
+      threadIds: ["thr_child"],
+    });
+    expect(archive).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+
+    await harness.behavior.callAgentTool("pstack_collect_threads", {
+      threadIds: ["thr_child"],
+      cleanup: true,
+    });
+    expect(archive).toHaveBeenCalledWith({ threadId: "thr_child" });
+    expect(stop).toHaveBeenCalledWith({ threadId: "thr_child" });
 
     await harness.lifecycle.dispose();
   });

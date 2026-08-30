@@ -5,7 +5,7 @@ description: Configure which Pi models and reasoning levels pstack uses per role
 
 # Setup pstack
 
-Configure the pstack plugin's per-role Pi models. The configuration is shared by the plugin's skills and Settings UI. Every delegated worker remains a hidden BB child thread on the `pi` provider.
+Configure the pstack plugin's per-role Pi models. The configuration is shared by the plugin's skills and Settings UI. Every delegated worker is a visible BB child thread on the `pi` provider.
 
 ## Steps
 

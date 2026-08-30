@@ -1,12 +1,12 @@
 ---
 name: no-comments
-description: "Spawn Comment Sicko as a hidden BB child thread, fix accepted findings, and offer encodings for claimed constraints."
+description: "Spawn Comment Sicko as a visible BB child thread, fix accepted findings, and offer encodings for claimed constraints."
 disable-model-invocation: true
 ---
 
 # No comments
 
-Spawn Comment Sicko as a hidden BB child thread. Act on accepted findings.
+Spawn Comment Sicko as a visible BB child thread. Act on accepted findings.
 
 Authoring agents defend comments. Defer to Comment Sicko's fresh perspective.
 

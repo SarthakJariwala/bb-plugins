@@ -7,7 +7,7 @@ Vendored from upstream pstack `0.14.5` at commit `68836ddaf5697224520f1847d90cdb
 ## BB adaptations
 
 - Installing the plugin installs all 45 pstack skills through the manifest's `bb.skills` contribution.
-- Pstack delegation uses hidden BB child threads instead of provider-native subagents.
+- Pstack delegation uses visible BB child threads instead of provider-native subagents. Workers appear under their parent thread while they run and remain available for inspection afterward.
 - Every pstack child runs on the **Pi** provider. The plugin supplies tools for batched spawn, collection, and cleanup.
 - Per-role models and reasoning levels live in plugin storage. Configure them with `/setup-pstack` or under **Settings → Plugins → pstack → Model roles**.
 - Upstream Grok `xhigh` defaults become `openai-codex/gpt-5.6-sol` at `xhigh`. The working BB defaults use GPT-5.6 Sol through Pi; setup can select any Pi model available on the target environment.
@@ -64,7 +64,7 @@ Agents receive these native plugin tools:
 - `pstack_collect_threads`
 - `pstack_finish_threads`
 
-Workers are parented to the calling thread and hidden from normal sidebar organization. Completed workers are archived and stopped when collected unless a durable orchestration workflow explicitly keeps them alive.
+Workers are parented to the calling thread and visible in normal thread navigation, like the Review plugin's child threads. Collection leaves completed workers visible by default. Pass `cleanup: true` to `pstack_collect_threads`, or call `pstack_finish_threads`, only when those threads should be archived and stopped.
 
 ## Develop
 

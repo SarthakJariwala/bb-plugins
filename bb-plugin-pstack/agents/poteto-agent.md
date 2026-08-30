@@ -1,7 +1,7 @@
 ---
 name: poteto-agent
 description: Source prompt for the pstack `poteto-agent` child-thread preset. Reads the `poteto-mode` skill's `SKILL.md` in full before any work, including its inline Principles index.
-is_background: true
+is_background: false
 ---
 
 # Poteto child-thread preset

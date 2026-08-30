@@ -112,7 +112,7 @@ function workerPrompt(
       ? POTETO_AGENT_PROMPT
       : preset === "comment-sicko"
         ? COMMENT_SICKO_PROMPT
-        : "You are a pstack background worker. Complete the brief independently and return a compact, evidenced report to the parent thread.";
+        : "You are a pstack worker. Complete the brief independently and return a compact, evidenced report to the parent thread.";
   const readOnlyPrompt = readOnly
     ? "\n\nThis is read-only work. Do not modify files, branches, tickets, or external state."
     : "";
@@ -253,7 +253,7 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_spawn_threads",
     description:
-      "Spawn one or more hidden BB child threads concurrently as pstack workers. Every child uses the Pi provider and the configured model for its role. Returns immediately with thread IDs; collect them later.",
+      "Spawn one or more visible BB child threads concurrently as pstack workers. Every child uses the Pi provider and the configured model for its role. Returns immediately with thread IDs; collect them later.",
     instructions:
       "Use this instead of a provider-native subagent or Task tool. Batch independent workers in one call. Use readOnly for reviewers and explorers. Give concurrent writers separate new-worktree workspaces.",
     presentation: {
@@ -309,7 +309,7 @@ export default async function plugin(bb: BbPluginApi) {
             model: selection.model,
             reasoningLevel: selection.reasoningLevel,
             environment,
-            visibility: "hidden",
+            visibility: "visible",
             title: worker.title,
             prompt: workerPrompt(
               worker.prompt,
@@ -367,9 +367,9 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_collect_threads",
     description:
-      "Wait for hidden pstack child threads to finish and collect their final outputs. Can archive and stop completed workers after collecting them; blocked workers with pending interactions remain available.",
+      "Wait for visible pstack child threads to finish and collect their final outputs. Workers remain visible after collection unless cleanup is explicitly true; blocked workers with pending interactions always remain available.",
     instructions:
-      "Collect only after all workers needed for the phase were spawned. Keep cleanup false for durable orchestrator workers that will receive follow-ups; otherwise clean up finished workers.",
+      "Collect only after all workers needed for the phase were spawned. Leave cleanup false so users can inspect completed child threads. Set cleanup true only when the user requested their removal.",
     presentation: {
       label: { pending: "Collecting pstack workers", completed: "Collected pstack workers" },
       icon: { glyph: "Workflow" },
@@ -398,13 +398,14 @@ export default async function plugin(bb: BbPluginApi) {
             bb.sdk.threads.output({ threadId: childThreadId, signal }),
             bb.sdk.threads.interactions.list({ threadId: childThreadId, signal }),
           ]);
-          const shouldCleanup = (cleanup ?? true) && interactions.length === 0;
+          const cleanupRequested = cleanup ?? false;
+          const shouldCleanup = cleanupRequested && interactions.length === 0;
           const result = {
             threadId: childThreadId,
             status: thread.status,
             output,
             pendingInteractions: interactions.length,
-            cleanupDeferred: (cleanup ?? true) && !shouldCleanup,
+            cleanupDeferred: cleanupRequested && !shouldCleanup,
           };
           if (shouldCleanup) {
             await bb.sdk.threads.archive({ threadId: childThreadId });
@@ -419,7 +420,9 @@ export default async function plugin(bb: BbPluginApi) {
 
   bb.agents.registerTool({
     name: "pstack_finish_threads",
-    description: "Archive and stop pstack child threads after their work has been collected.",
+    description: "Archive and stop pstack child threads when the user explicitly requests cleanup.",
+    instructions:
+      "Use only after the user asks to remove completed pstack child threads. Collection leaves them visible by default.",
     presentation: {
       label: { pending: "Stopping pstack workers", completed: "Stopped pstack workers" },
       icon: { glyph: "Workflow" },
@@ -457,7 +460,7 @@ export default async function plugin(bb: BbPluginApi) {
     tools: [...PSTACK_TOOLS],
     skills: [...PSTACK_SKILLS],
     instructions:
-      "Pstack runs delegation through hidden BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads and pstack_collect_threads instead of a provider-native subagent. Every child is routed through Pi. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
+      "Pstack runs delegation through visible BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads and pstack_collect_threads instead of a provider-native subagent. Every child is routed through Pi and remains visible after collection unless cleanup is explicitly requested. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
   }));
 
   const usage = [

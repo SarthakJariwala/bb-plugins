@@ -1,7 +1,7 @@
 {
   "name": "bb-plugin-pstack",
   "version": "0.14.5",
-  "description": "Lauren Tan's pstack, ported to BB with Pi-powered background child threads.",
+  "description": "Lauren Tan's pstack, ported to BB with visible Pi-powered child threads.",
   "license": "MIT",
   "author": "Lauren Tan; BB port contributors",
   "homepage": "https://github.com/cursor/plugins/tree/main/pstack",
@@ -17,7 +17,7 @@
   },
   "bb": {
     "name": "pstack",
-    "description": "Lauren Tan's pstack workflows, ported to hidden BB child threads on Pi.",
+    "description": "Lauren Tan's pstack workflows, ported to visible BB child threads on Pi.",
     "branding": {
       "icon": "Crown"
     },

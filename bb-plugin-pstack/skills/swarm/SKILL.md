@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Swarm
 
-Fan out N parallel hidden BB child threads on Pi. They may cover separate slices, race the same brief, or mix both. The parent waits, aggregates, and returns one report.
+Fan out N parallel visible BB child threads on Pi. They may cover separate slices, race the same brief, or mix both. The parent waits, aggregates, and returns one report.
 
 ## Start
 

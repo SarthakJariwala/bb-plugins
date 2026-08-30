@@ -24,7 +24,7 @@ In a new BB thread, run:
 
 [`/setup-pstack`](../../skills/setup-pstack/SKILL.md) detects the Pi models available in the thread's environment, shows every role, and asks what you want. Answer the question. The plugin saves the configuration in its own storage, and the same values appear under **Settings → Plugins → pstack → Model roles**.
 
-Scalar roles choose one model and reasoning level. For panel roles, one hidden BB child thread runs per entry, so list length sets panel size. Setup also configures `swarm-workers`, the default for `/swarm` unless a race names another configured role or panel arm.
+Scalar roles choose one model and reasoning level. For panel roles, one visible BB child thread runs per entry, so list length sets panel size. Setup also configures `swarm-workers`, the default for `/swarm` unless a race names another configured role or panel arm.
 
 The BB port defaults to `openai-codex/gpt-5.6-sol`. Roles that were Grok `xhigh` upstream remain at `xhigh` reasoning. Judgment and precisely specified hard-work roles default to `max`. Run `/setup-pstack` again whenever you want to change them, or use the Settings UI.
 

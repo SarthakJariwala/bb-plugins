@@ -30,7 +30,7 @@ Skip Phase A only when the work is genuinely greenfield with no surrounding syst
 
 Run the **arena** skill with the design-sketch task and the Phase A grounding artifacts. Pass `references/runner-prompt.md` as each runner's prompt. Each candidate produces a design package shaped per `references/rationale-template.md`: the caller's usage written first, then the type sketch, function signatures, module map, and prose rationale derived from it.
 
-Call `pstack_get_model_config` and use the `architect-runners` panel for this arena instead of the generic arena panel. Spawn one hidden Pi child thread per entry with the matching `selectionIndex`; `/setup-pstack` controls the models, reasoning levels, and panel length.
+Call `pstack_get_model_config` and use the `architect-runners` panel for this arena instead of the generic arena panel. Spawn one visible Pi child thread per entry with the matching `selectionIndex`; `/setup-pstack` controls the models, reasoning levels, and panel length.
 
 Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is the **exhaust-the-design-space** principle skill made concrete. Whole-shape alternatives, not point fixes inside one shape.
 

@@ -27,7 +27,7 @@ i want two cursor automations that work together in one slack issue channel.
 
 - i want the source channel and root thread coordinates to stay immutable for the whole run.
 - i treat utility and debug bots as evidence, not delegation or fix ownership.
-- i allow hidden BB child threads to help, but they cannot post to slack or receive slack credentials.
+- i allow visible BB child threads to help, but they cannot post to slack or receive slack credentials.
 - i want this entire pack committed at `.cursor/automations/benny/` in the target repository. its `SKILL.md` files are direct automation instructions, not registered plugin skills.
 - i want pstack enabled through the target repository's committed `.cursor/settings.json` only for shared dependencies such as `how`, `why`, `tdd`, `unslop`, and the required principle skills.
 - i want each live automation prompt to read its committed operational file directly. i do not want plugin cache paths, copied excerpts, or slash-skill discovery.

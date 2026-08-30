@@ -64,7 +64,7 @@ Then proceed to Step 3.
 
 ### Step 2b. Direct Explain (simple questions)
 
-Spawn one hidden child thread with `pstack_spawn_threads` that explores and explains in one pass:
+Spawn one visible child thread with `pstack_spawn_threads` that explores and explains in one pass:
 
 - `preset`: `general`
 - `role`: `how-explainer`
@@ -79,7 +79,7 @@ Proceed to Step 4.
 
 ### Step 3. Synthesize (complex questions only)
 
-Once all explorers return, spawn one hidden child thread with `pstack_spawn_threads` to synthesize their findings into one coherent explanation:
+Once all explorers return, spawn one visible child thread with `pstack_spawn_threads` to synthesize their findings into one coherent explanation:
 
 - `preset`: `general`
 - `role`: `how-explainer`
