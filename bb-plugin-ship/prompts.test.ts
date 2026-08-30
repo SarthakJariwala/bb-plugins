@@ -1,11 +1,29 @@
 import { describe, expect, it } from "vitest";
-import { SHIP_AS_PR_PROMPT, SHIP_OPTIONS, SHIP_TO_MAIN_PROMPT } from "./prompts";
+import {
+  getShipOptions,
+  SHIP_AS_PR_PROMPT,
+  SHIP_OPTIONS,
+  SHIP_PROMPT_SETTING_KEYS,
+  SHIP_TO_MAIN_PROMPT,
+} from "./prompts";
 
 describe("ship prompts", () => {
   it("lists the pull-request action first", () => {
     expect(SHIP_OPTIONS.map(({ label }) => label)).toEqual([
       "Ship as PR",
       "Ship it to main",
+    ]);
+  });
+
+  it("uses configured prompt wording", () => {
+    const options = getShipOptions({
+      [SHIP_PROMPT_SETTING_KEYS.asPullRequest]: "Open my custom PR.",
+      [SHIP_PROMPT_SETTING_KEYS.toMain]: "Push my custom main branch.",
+    });
+
+    expect(options.map(({ prompt }) => prompt)).toEqual([
+      "Open my custom PR.",
+      "Push my custom main branch.",
     ]);
   });
 

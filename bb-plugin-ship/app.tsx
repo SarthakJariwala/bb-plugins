@@ -1,6 +1,7 @@
 import {
   definePluginApp,
   useComposer,
+  useSettings,
   type PluginThreadHeaderActionProps,
 } from "@bb/plugin-sdk/app";
 import { Button } from "@/components/ui/button";
@@ -11,11 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
-import { SHIP_OPTIONS } from "./prompts";
+import { getShipOptions } from "./prompts";
 import "./app.css";
 
 function ShipHeaderButton({ isCompactViewport }: PluginThreadHeaderActionProps) {
   const composer = useComposer();
+  const { values: settings } = useSettings();
+  const shipOptions = getShipOptions(settings);
 
   function copyPrompt(prompt: string) {
     composer.setText(prompt);
@@ -38,7 +41,7 @@ function ShipHeaderButton({ isCompactViewport }: PluginThreadHeaderActionProps) 
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" mobileTitle="Ship changes">
-        {SHIP_OPTIONS.map((option) => (
+        {shipOptions.map((option) => (
           <DropdownMenuItem key={option.value} onSelect={() => copyPrompt(option.prompt)}>
             {option.label}
           </DropdownMenuItem>

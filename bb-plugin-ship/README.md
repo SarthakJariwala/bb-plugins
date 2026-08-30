@@ -7,7 +7,7 @@ The menu drafts one of two prompts in the current thread's composer and focuses 
 1. **Ship as PR** — commit changes, test, push, open a pull request, wait for CI, and fix related failures.
 2. **Ship it to main** — commit changes, test, and push to `origin/HEAD`.
 
-Both workflows ask the agent to rebase if the remote is ahead, consult the user about substantive conflicts, and archive the thread when complete.
+Both workflows ask the agent to rebase if the remote is ahead, consult the user about substantive conflicts, and archive the thread when complete. You can edit either prompt on the Ship plugin's settings page.
 
 ## Develop
 
