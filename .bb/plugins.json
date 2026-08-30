@@ -1,0 +1,23 @@
+{
+  "$schema": "https://getbb.app/schemas/plugins.schema.json",
+  "schemaVersion": 1,
+  "name": "sarthakjariwala-bb-plugins",
+  "plugins": [
+    {
+      "name": "review",
+      "source": "./review"
+    },
+    {
+      "name": "session-import",
+      "source": "./bb-plugin-session-import"
+    },
+    {
+      "name": "ship",
+      "source": "./bb-plugin-ship"
+    },
+    {
+      "name": "sprite-keepalive",
+      "source": "./bb-plugin-sprite-keepalive"
+    }
+  ]
+}
