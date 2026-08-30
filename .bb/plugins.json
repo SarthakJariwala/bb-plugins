@@ -16,6 +16,10 @@
       "source": "./bb-plugin-ship"
     },
     {
+      "name": "pstack",
+      "source": "./bb-plugin-pstack"
+    },
+    {
       "name": "sprite-keepalive",
       "source": "./bb-plugin-sprite-keepalive"
     }
