@@ -12,12 +12,14 @@ describe("pstack model configuration", () => {
 
     expect(config["feature-refactoring"]).toEqual([
       {
+        providerId: "pi",
         model: "openai-codex/gpt-5.6-sol",
         reasoningLevel: "xhigh",
       },
     ]);
     expect(config["swarm-workers"]).toEqual([
       {
+        providerId: "pi",
         model: "openai-codex/gpt-5.6-sol",
         reasoningLevel: "xhigh",
       },
@@ -31,7 +33,7 @@ describe("pstack model configuration", () => {
     });
 
     expect(config["bug-fix"]).toEqual([
-      { model: "custom/model", reasoningLevel: "high" },
+      { providerId: "pi", model: "custom/model", reasoningLevel: "high" },
     ]);
     expect(config["feature-refactoring"]).toEqual(
       defaultModelConfig()["feature-refactoring"],
@@ -41,8 +43,8 @@ describe("pstack model configuration", () => {
   it("requires one selection for scalar roles and rotates panel selections", () => {
     const config = defaultModelConfig();
     config["bug-fix"] = [
-      { model: "one", reasoningLevel: "high" },
-      { model: "two", reasoningLevel: "high" },
+      { providerId: "claude", model: "one", reasoningLevel: "high" },
+      { providerId: "codex", model: "two", reasoningLevel: "high" },
     ];
     expect(() => validateCompleteModelConfig(config)).toThrow(
       "Bug fix accepts exactly one model",

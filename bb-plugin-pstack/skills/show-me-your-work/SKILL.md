@@ -64,14 +64,14 @@ Fix the log, not the story. If the work diverged from what a row claims, the row
 
 ## Cross-model review of the trail
 
-Before handing back, spawn one visible BB child thread on a different configured Pi model family from the one that did the work when the available catalog permits it. Self-review is not a substitute; the point is fresh eyes you cannot bring yourself. Call `pstack_get_model_config`, choose a suitable entry from `arena-cross-judge`, then call `pstack_spawn_threads` with `preset: "general"`, `role: "arena-cross-judge"`, its `selectionIndex`, `readOnly: true`, and `workspace: "reuse"`. The child reads the audit trail and this run's exported BB thread log, then flags what the user should scrutinize. Collect it with `pstack_collect_threads`. This is a risk scan, not a redo.
+Before handing back, spawn one visible BB child thread on a different configured provider or model family from the one that did the work when the available catalogs permit it. Self-review is not a substitute; the point is fresh eyes you cannot bring yourself. Call `pstack_get_model_config`, choose a suitable entry from `arena-cross-judge`, then call `pstack_spawn_threads` with `preset: "general"`, `role: "arena-cross-judge"`, its `selectionIndex`, `readOnly: true`, and `workspace: "reuse"`. The child reads the audit trail and this run's exported BB thread log, then flags what the user should scrutinize. Collect it with `pstack_collect_threads`. This is a risk scan, not a redo.
 
 - Decisions logged with weak or absent evidence.
 - Verification steps skipped or claimed without proof in the transcript.
 - Choices that look risky in hindsight (premature, scope-creeping, papering over a symptom).
 - Gaps the user would otherwise miss on a casual skim.
 
-Every reply for a run that produced a trail ends with an "Attention" section. Lead with the reviewer's Pi model and reasoning level on its own line (`reviewed by <model> @ <reasoning>`), then list each flag pointing to specific rows or moments. "No flags" is a valid value; the model name is not. The self-audit asks if the log told the truth; this asks what the user should still scrutinize even when it did.
+Every reply for a run that produced a trail ends with an "Attention" section. Lead with the reviewer's provider, model, and reasoning level on its own line (`reviewed by <provider>:<model> @ <reasoning>`), then list each flag pointing to specific rows or moments. "No flags" is a valid value; the model name is not. The self-audit asks if the log told the truth; this asks what the user should still scrutinize even when it did.
 
 ## Reviewing the trail
 

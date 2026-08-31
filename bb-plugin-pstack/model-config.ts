@@ -14,8 +14,10 @@ export type ReasoningLevel = z.infer<typeof reasoningLevelSchema>;
 
 export const modelSelectionSchema = z
   .object({
+    providerId: z.string().trim().min(1).default("pi"),
     model: z.string().trim().min(1),
     reasoningLevel: reasoningLevelSchema,
+    serviceTier: z.enum(["default", "fast"]).optional(),
   })
   .strict();
 export type ModelSelection = z.infer<typeof modelSelectionSchema>;
@@ -147,6 +149,7 @@ export type ModelConfig = Record<RoleId, ModelSelection[]>;
 
 const GPT_56_SOL = "openai-codex/gpt-5.6-sol";
 const sol = (reasoningLevel: ReasoningLevel): ModelSelection => ({
+  providerId: "pi",
   model: GPT_56_SOL,
   reasoningLevel,
 });

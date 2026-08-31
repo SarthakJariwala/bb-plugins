@@ -33,7 +33,7 @@ Write one clear paragraph. Reviewers challenge whether the work achieves the int
 
 ## Step 3, Spawn Reviewers
 
-Call `pstack_get_model_config` and use the `interrogate-reviewers` panel. Label entries Reviewer A, B, C, and so on, extending or shrinking labels to the configured entry count. The default is four Pi workers; `/setup-pstack` can change their models, reasoning levels, and count.
+Call `pstack_get_model_config` and use the `interrogate-reviewers` panel. Label entries Reviewer A, B, C, and so on, extending or shrinking labels to the configured entry count. The default is four BB child workers; `/setup-pstack` can change their models, reasoning levels, and count.
 
 Launch all reviewers in one `pstack_spawn_threads` call. For each reviewer set:
 
@@ -91,7 +91,7 @@ Present the verdict in this structure:
 > [The stated intent paragraph from Step 2]
 
 ### Reviewers
-- Reviewer [label]: [Pi model and reasoning level], [N findings] (one bullet per reviewer)
+- Reviewer [label]: [provider, model, and reasoning level], [N findings] (one bullet per reviewer)
 
 ### Act On
 [Findings that should be addressed. For each: description, which models raised it, why it matters.]

@@ -1,11 +1,11 @@
 ---
 name: setup-pstack
-description: Configure which Pi models and reasoning levels pstack uses per role. Detects available Pi models and saves role overrides in the BB pstack plugin. Use for /setup-pstack, "configure pstack models", or changing pstack's model choices.
+description: Configure which BB providers, models, reasoning levels, and service tiers pstack uses per role. Detects available choices and saves role overrides in the BB pstack plugin. Use for /setup-pstack, "configure pstack models", or changing pstack's model choices.
 ---
 
 # Setup pstack
 
-Configure the pstack plugin's per-role Pi models. The configuration is shared by the plugin's skills and Settings UI. Every delegated worker is a visible BB child thread on the `pi` provider.
+Configure the provider and model used for each pstack role. The configuration is shared by the plugin's skills and Settings UI. Every delegated worker is a visible BB child thread on its configured provider.
 
 ## Steps
 
@@ -13,16 +13,16 @@ Configure the pstack plugin's per-role Pi models. The configuration is shared by
 
 Call `pstack_get_model_config`. This is the authoritative source for:
 
-- Pi models available in the current thread's environment.
-- Supported reasoning levels for each model.
-- Current choices for every pstack role.
+- Providers and models available in the current thread's environment.
+- Supported reasoning levels for each model and service tiers for each provider.
+- Current provider and model choices for every pstack role.
 - Which roles are panels. A panel launches one child thread per entry.
 
-Do not inspect Cursor model slugs or `~/.cursor/rules/pstack-models.mdc`. They are not used by this BB plugin. If Pi model discovery returns an error or no models, report the concrete error and stop without changing configuration.
+Do not inspect Cursor model slugs or `~/.cursor/rules/pstack-models.mdc`. They are not used by this BB plugin. Use the provider IDs and model IDs returned by the tool. If discovery returns no available provider with models, report the concrete errors and stop without changing configuration.
 
 ### 2. Show the current mapping
 
-Present every role with its current model and reasoning level. Mark a selection invalid when its model is absent from the detected catalog or its reasoning level is unsupported.
+Present every role with its current provider, model, reasoning level, and service tier when set. Mark a selection invalid when its provider is unavailable, its model is absent from that provider's catalog, its reasoning level is unsupported, or its service tier is unsupported.
 
 Group the output into:
 
@@ -32,7 +32,7 @@ Group the output into:
 
 ### 3. Ask for changes
 
-Ask whether to keep the mapping, reset to defaults, or change named roles. Offer only models and reasoning levels returned by `pstack_get_model_config`.
+Ask whether to keep the mapping, reset to defaults, or change named roles. Offer only provider, model, reasoning, and service-tier combinations returned by `pstack_get_model_config`.
 
 For panel roles, make clear that list length controls fan-out. Preserve the current entry count unless the user asks to change it. `arena cross-judge pool` is a candidate pool; Arena chooses one entry when it judges.
 
@@ -40,7 +40,7 @@ Use a normal concise question. Do not write guessed model IDs.
 
 ### 4. Validate and save
 
-Validate each requested model and reasoning pair against the detected catalog. A real model must be present, and its reasoning level must be supported.
+Validate each requested selection against the detected catalog. The provider must be available, the model must belong to it, the reasoning level must be supported, and any service tier must be listed for that provider.
 
 Call `pstack_update_model_config` with only the changed roles. For a reset, call it with `reset: true`. Re-read with `pstack_get_model_config` and confirm the saved values.
 

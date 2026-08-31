@@ -14,7 +14,7 @@ describe("pstack settings app", () => {
     expect(app.settingsSections[1]).toMatchObject({
       id: "model-roles",
       title: "Model roles",
-      description: "Configure the Pi models and reasoning levels used by pstack workflows.",
+      description: "Configure the providers, models, and reasoning levels used by pstack workflows.",
     });
 
     const about = renderSlot(app.settingsSections[0]!, {});

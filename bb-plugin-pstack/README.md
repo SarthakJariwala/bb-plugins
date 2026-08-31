@@ -8,9 +8,9 @@ Vendored from upstream pstack `0.14.5` at commit `68836ddaf5697224520f1847d90cdb
 
 - Installing the plugin installs all 45 pstack skills through the manifest's `bb.skills` contribution.
 - Pstack delegation uses visible BB child threads instead of provider-native subagents. Workers appear under their parent thread while they run and remain available for inspection afterward.
-- Every pstack child runs on the **Pi** provider. The plugin supplies tools for batched spawn, collection, and cleanup.
-- Per-role models and reasoning levels live in plugin storage. Configure them with `/setup-pstack` or under **Settings → Plugins → pstack → Model roles**.
-- Upstream Grok `xhigh` defaults become `openai-codex/gpt-5.6-sol` at `xhigh`. The working BB defaults use GPT-5.6 Sol through Pi; setup can select any Pi model available on the target environment.
+- Each pstack role can use any provider registered in BB, including Pi, Claude, Codex, and Cursor. The plugin supplies tools for batched spawn, collection, and cleanup.
+- Per-role providers, models, reasoning levels, and service tiers live in plugin storage. Configure them with `/setup-pstack` or under **Settings → Plugins → pstack → Model roles**.
+- Upstream Grok `xhigh` defaults become `openai-codex/gpt-5.6-sol` at `xhigh`. The working BB defaults still use GPT-5.6 Sol through Pi, while setup can select any available BB provider and model.
 - Cursor transcript, model-rule, cloud-agent, and `/loop` instructions are mapped to BB threads, plugin configuration, managed worktrees, and BB automations.
 
 The upstream `agents/` files remain as source artifacts. `pstack_spawn_threads` implements their BB equivalents through `poteto-agent` and `comment-sicko` presets.
@@ -43,7 +43,7 @@ For the normal workflow, start a task with:
 
 ## Configuration
 
-The Settings UI uses BB's live provider/model picker and fixes the provider to Pi. Scalar roles choose one model. Panel roles launch one child per configured entry.
+The Settings UI uses the same live provider/model picker as BB's new-thread composer. Scalar roles choose one provider and model. Panel roles launch one child per configured entry.
 
 CLI inspection and reset are also available:
 

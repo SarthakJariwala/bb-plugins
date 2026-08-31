@@ -31,16 +31,13 @@ function ModelChoice({
 }) {
   return (
     <ProviderModelPicker
-      value={{
-        providerId: "pi",
-        model: selection.model,
-        reasoningLevel: selection.reasoningLevel,
-      }}
-      allowProviderChange={false}
+      value={selection}
       onChange={(value) =>
         onChange({
+          providerId: value.providerId,
           model: value.model,
           reasoningLevel: value.reasoningLevel,
+          ...(value.serviceTier === undefined ? {} : { serviceTier: value.serviceTier }),
         })
       }
     />
@@ -52,7 +49,7 @@ function PstackInfo() {
     <div className="space-y-2 text-sm">
       <p>
         pstack is by Lauren Tan. This BB port keeps the original workflows while running delegated
-        work through visible Pi child threads.
+        work through visible BB child threads.
       </p>
       <UrlLink
         href="https://github.com/cursor/plugins/tree/main/pstack"
@@ -165,9 +162,9 @@ function PstackSettings() {
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="max-w-2xl text-sm text-muted-foreground">
-          Every pstack worker is a visible BB child thread on Pi. Spawns return immediately, and
-          required workers must be collected before dependent work. Pick one model for scalar roles.
-          Panel roles launch one child per entry.
+          Every pstack worker is a visible BB child thread. Spawns return immediately, and required
+          workers must be collected before dependent work. Pick a provider and model for scalar
+          roles. Panel roles launch one child per entry.
         </p>
         <div className="flex shrink-0 gap-2">
           <Button variant="outline" size="sm" onClick={() => void reset()} disabled={saving}>
@@ -249,7 +246,7 @@ export default definePluginApp((app) => {
   app.slots.settingsSection({
     id: "model-roles",
     title: "Model roles",
-    description: "Configure the Pi models and reasoning levels used by pstack workflows.",
+    description: "Configure the providers, models, and reasoning levels used by pstack workflows.",
     component: PstackSettings,
   });
 });

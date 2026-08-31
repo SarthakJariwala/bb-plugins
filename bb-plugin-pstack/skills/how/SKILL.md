@@ -118,7 +118,7 @@ Run the full explain flow above (Steps 1-4). You must understand the architectur
 
 ### Step 2. Spawn Critics
 
-After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four Pi threads; `/setup-pstack` can change its models, reasoning levels, and length. Collect every critic before lead judgment.
+After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four BB child threads; `/setup-pstack` can change its models, reasoning levels, and length. Collect every critic before lead judgment.
 
 Each brief points to `references/critic-prompt.md` instead of pasting it. Each critic gets:
 1. The explainer thread ID as an artifact pointer, plus a compact orientation

@@ -23,7 +23,6 @@ export const rpcContract = defineRpcContract({
   config_get: {
     input: z.null(),
     output: z.object({
-      providerId: z.literal("pi"),
       roles: z.array(roleDefinitionSchema),
       config: modelConfigSchema,
     }),
@@ -170,7 +169,10 @@ function workerPrompt(
 function printableConfig(config: ModelConfig): string {
   return ROLE_DEFINITIONS.map((role) => {
     const value = config[role.id]
-      .map((selection) => `${selection.model} (${selection.reasoningLevel})`)
+      .map((selection) => {
+        const tier = selection.serviceTier === undefined ? "" : `, ${selection.serviceTier} tier`;
+        return `${selection.providerId}: ${selection.model} (${selection.reasoningLevel}${tier})`;
+      })
       .join(", ");
     return `${role.label}: ${value}`;
   }).join("\n");
@@ -197,18 +199,55 @@ export default async function plugin(bb: BbPluginApi) {
     return config;
   }
 
-  async function piModelsForThread(threadId: string, signal?: AbortSignal) {
+  async function providerCatalogsForThread(threadId: string, signal?: AbortSignal) {
     const parent = await bb.sdk.threads.get({ threadId, signal });
-    return bb.sdk.providers.models(
-      parent.environmentId === null
-        ? { providerId: "pi", signal }
-        : { providerId: "pi", environmentId: parent.environmentId, signal },
+    const routing =
+      parent.environmentId === null ? {} : { environmentId: parent.environmentId };
+    const providers = await bb.sdk.providers.list({ ...routing, signal });
+
+    return Promise.all(
+      providers.map(async (provider) => {
+        try {
+          const catalog = await bb.sdk.providers.models({
+            ...routing,
+            providerId: provider.id,
+            signal,
+          });
+          return {
+            id: provider.id,
+            displayName: provider.displayName,
+            available: provider.available,
+            serviceTiers: provider.serviceTiers?.map((tier) => tier.id) ?? [],
+            models: catalog.models.map((model) => ({
+              id: model.id,
+              displayName: model.displayName,
+              isDefault: model.isDefault,
+              reasoningLevels: model.supportedReasoningEfforts.map(
+                (effort) => effort.reasoningEffort,
+              ),
+            })),
+            modelLoadError: catalog.modelLoadError,
+          };
+        } catch (cause) {
+          return {
+            id: provider.id,
+            displayName: provider.displayName,
+            available: provider.available,
+            serviceTiers: provider.serviceTiers?.map((tier) => tier.id) ?? [],
+            models: [],
+            modelLoadError: {
+              code: "failed",
+              providerId: provider.id,
+              message: cause instanceof Error ? cause.message : String(cause),
+            },
+          };
+        }
+      }),
     );
   }
 
   bb.rpc.register(rpcContract, {
     config_get: async () => ({
-      providerId: "pi" as const,
       roles: [...ROLE_DEFINITIONS],
       config: await readConfig(),
     }),
@@ -219,29 +258,20 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_get_model_config",
     description:
-      "Read pstack's per-role Pi model configuration and the Pi models available in this thread's environment. Use before planning pstack fan-out and during setup-pstack.",
+      "Read pstack's per-role provider and model configuration plus the providers and models available in this thread's environment. Use before planning pstack fan-out and during setup-pstack.",
     presentation: {
       label: { pending: "Reading pstack models", completed: "Read pstack models" },
     },
     parameters: z.object({}).strict(),
     async execute(_params, { threadId, signal }) {
-      const [config, catalog] = await Promise.all([
+      const [config, providers] = await Promise.all([
         readConfig(),
-        piModelsForThread(threadId, signal),
+        providerCatalogsForThread(threadId, signal),
       ]);
       return JSON.stringify({
-        providerId: "pi",
         roles: ROLE_DEFINITIONS,
         config,
-        models: catalog.models.map((model) => ({
-          id: model.id,
-          displayName: model.displayName,
-          isDefault: model.isDefault,
-          reasoningLevels: model.supportedReasoningEfforts.map(
-            (effort) => effort.reasoningEffort,
-          ),
-        })),
-        modelLoadError: catalog.modelLoadError,
+        providers,
       });
     },
   });
@@ -249,7 +279,7 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_update_model_config",
     description:
-      "Update one or more pstack role model selections after the user chooses them, or reset all roles to BB defaults. Models are always run through the Pi provider.",
+      "Update one or more pstack role provider and model selections after the user chooses them, or reset all roles to BB defaults.",
     presentation: {
       label: { pending: "Saving pstack models", completed: "Saved pstack models" },
     },
@@ -301,7 +331,7 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_spawn_threads",
     description:
-      "Spawn one or more visible BB child threads concurrently as pstack workers. Every child uses the Pi provider and the configured model for its role. Returns immediately with thread IDs; collect them later.",
+      "Spawn one or more visible BB child threads concurrently as pstack workers. Every child uses the configured provider and model for its role. Returns immediately with thread IDs; collect them later.",
     instructions: [
       "Use this instead of a provider-native subagent or Task tool. Batch independent workers in one call. Use readOnly for reviewers and explorers. Give concurrent writers separate new-worktree workspaces.",
       COORDINATOR_RULE,
@@ -371,9 +401,12 @@ export default async function plugin(bb: BbPluginApi) {
           const child = await bb.sdk.threads.spawn({
             projectId,
             parentThreadId: threadId,
-            providerId: "pi",
+            providerId: selection.providerId,
             model: selection.model,
             reasoningLevel: selection.reasoningLevel,
+            ...(selection.serviceTier === undefined
+              ? {}
+              : { serviceTier: selection.serviceTier }),
             environment,
             visibility: "visible",
             title: worker.title,
@@ -388,8 +421,12 @@ export default async function plugin(bb: BbPluginApi) {
             threadId: child.id,
             title: child.title ?? child.titleFallback,
             role: worker.role,
+            providerId: selection.providerId,
             model: selection.model,
             reasoningLevel: selection.reasoningLevel,
+            ...(selection.serviceTier === undefined
+              ? {}
+              : { serviceTier: selection.serviceTier }),
             workspace,
           };
         }),
@@ -611,7 +648,7 @@ export default async function plugin(bb: BbPluginApi) {
     tools: [...PSTACK_TOOLS],
     skills: [...PSTACK_SKILLS],
     instructions: [
-      "Pstack runs delegation through visible BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads and pstack_collect_threads instead of a provider-native subagent. Every child is routed through Pi and remains visible after collection unless cleanup is explicitly requested. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
+      "Pstack runs delegation through visible BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads and pstack_collect_threads instead of a provider-native subagent. Every child uses its role's configured provider and model and remains visible after collection unless cleanup is explicitly requested. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
       COORDINATOR_RULE,
       BRIEF_RULE,
       "Collection is a required barrier by default. BB already emits child-completion summaries; leave includeOutputs false unless those summaries and artifact pointers are insufficient.",
@@ -626,7 +663,7 @@ export default async function plugin(bb: BbPluginApi) {
   ].join("\n");
   bb.cli.register({
     name: "pstack",
-    summary: "Inspect and reset pstack's Pi model configuration",
+    summary: "Inspect and reset pstack's provider and model configuration",
     commands: [
       {
         name: "setup",

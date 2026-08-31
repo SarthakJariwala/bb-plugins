@@ -97,7 +97,7 @@ Capture this as seed context (file paths, symbols, commits, PR numbers, linked t
 
 ### Discovery
 
-Before spawning investigators, list the MCPs and external evidence tools available to the current Pi thread. Use the session's tool catalog and server instructions. Do not assume Cursor's `mcps/` directory exists.
+Before spawning investigators, list the MCPs and external evidence tools available to the current BB thread. Use the session's tool catalog and server instructions. Do not assume Cursor's `mcps/` directory exists.
 
 Map each available MCP to one evidence category:
 

@@ -1,4 +1,4 @@
-import type { PluginAgentToolResult } from "@get-bb/plugin-sdk";
+import type { BbPluginApi, PluginAgentToolResult } from "@get-bb/plugin-sdk";
 import {
   createFakePluginHost,
   makeThreadResponse,
@@ -27,6 +27,67 @@ function childThread(status: "active" | "error" | "idle" = "idle") {
   });
 }
 
+type ProviderInfo = Awaited<
+  ReturnType<BbPluginApi["sdk"]["providers"]["list"]>
+>[number];
+type ProviderModelsArgs = Parameters<
+  BbPluginApi["sdk"]["providers"]["models"]
+>[0];
+type ProviderModelsResult = Awaited<
+  ReturnType<BbPluginApi["sdk"]["providers"]["models"]>
+>;
+
+function providerInfo(id: string, displayName: string): ProviderInfo {
+  return {
+    id,
+    displayName,
+    pluginId: id,
+    available: true,
+    logoUrl: null,
+    maintenance: { health: true, installation: true, usage: true },
+    capabilities: {
+      modelCatalogScope: "workspace",
+      permissionModes: ["full"],
+      supportsFork: false,
+      supportsNativeUserQuestion: false,
+      supportsServiceTier: true,
+      supportsSessionRewind: false,
+      supportsThreadArchive: false,
+      supportsThreadRename: false,
+    },
+    composerActions: [],
+    serviceTiers: [
+      { id: "default", label: "Default" },
+      { id: "fast", label: "Fast" },
+    ],
+  };
+}
+
+function providerModels(
+  provider: ProviderInfo,
+  modelId: string,
+): ProviderModelsResult {
+  return {
+    modelLoadError: null,
+    models: [
+      {
+        id: modelId,
+        model: modelId,
+        displayName: modelId,
+        description: "",
+        isDefault: true,
+        defaultReasoningEffort: "high",
+        supportedReasoningEfforts: [
+          { reasoningEffort: "high", description: "High" },
+        ],
+      },
+    ],
+    permissionCeiling: "full",
+    providers: [provider],
+    selectedOnlyModels: [],
+  };
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -48,13 +109,63 @@ describe("pstack plugin", () => {
     const result = await harness.behavior.runCli(["config", "--json"]);
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout ?? "{}")["bug-fix"]).toEqual([
-      { model: "pi/custom", reasoningLevel: "high" },
+      { providerId: "pi", model: "pi/custom", reasoningLevel: "high" },
     ]);
 
     await harness.lifecycle.dispose();
   });
 
-  it("returns immediately after spawning a visible active Pi child", async () => {
+  it("returns every available provider catalog for setup", async () => {
+    const claude = providerInfo("claude", "Claude");
+    const codex = providerInfo("codex", "Codex");
+    const list = vi.fn(async () => [claude, codex]);
+    const models = vi.fn(async (args: ProviderModelsArgs) =>
+      args?.providerId === "claude"
+        ? providerModels(claude, "claude-opus-4-6")
+        : providerModels(codex, "gpt-5.4"),
+    );
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "pstack",
+      sdk: {
+        threads: {
+          get: async () =>
+            makeThreadResponse({
+              id: "thr_parent",
+              environmentId: "env_test",
+            }),
+        },
+        providers: { list, models },
+      },
+    });
+    await plugin(bb);
+
+    const result = await harness.behavior.callAgentTool(
+      "pstack_get_model_config",
+      {},
+      { threadId: "thr_parent" },
+    );
+    const parsed = JSON.parse(resultText(result));
+
+    expect(parsed.providers).toEqual([
+      expect.objectContaining({
+        id: "claude",
+        models: [expect.objectContaining({ id: "claude-opus-4-6" })],
+        serviceTiers: ["default", "fast"],
+      }),
+      expect.objectContaining({
+        id: "codex",
+        models: [expect.objectContaining({ id: "gpt-5.4" })],
+      }),
+    ]);
+    expect(list).toHaveBeenCalledWith(
+      expect.objectContaining({ environmentId: "env_test" }),
+    );
+    expect(models).toHaveBeenCalledTimes(2);
+
+    await harness.lifecycle.dispose();
+  });
+
+  it("returns immediately after spawning a visible active default child", async () => {
     const spawn = vi.fn(async () =>
       makeThreadResponse({
         id: "thr_child",
@@ -115,6 +226,84 @@ describe("pstack plugin", () => {
         reasoningLevel: "xhigh",
         visibility: "visible",
         environment: { type: "reuse", environmentId: "env_test" },
+      }),
+    );
+
+    await harness.lifecycle.dispose();
+  });
+
+  it("spawns a child with the configured provider, model, reasoning, and service tier", async () => {
+    const spawn = vi.fn(async () =>
+      makeThreadResponse({
+        id: "thr_claude_child",
+        projectId: "proj_test",
+        parentThreadId: "thr_parent",
+        providerId: "claude",
+        status: "active",
+        visibility: "visible",
+      }),
+    );
+    const { bb, harness } = createFakePluginHost({
+      pluginId: "pstack",
+      sdk: {
+        threads: {
+          get: async () =>
+            makeThreadResponse({
+              id: "thr_parent",
+              projectId: "proj_test",
+              environmentId: "env_test",
+              canSpawnChild: true,
+            }),
+          spawn,
+        },
+      },
+    });
+    await plugin(bb);
+
+    await harness.behavior.callAgentTool("pstack_update_model_config", {
+      updates: [
+        {
+          role: "bug-fix",
+          selections: [
+            {
+              providerId: "claude",
+              model: "claude-opus-4-6",
+              reasoningLevel: "high",
+              serviceTier: "fast",
+            },
+          ],
+        },
+      ],
+    });
+    const result = await harness.behavior.callAgentTool(
+      "pstack_spawn_threads",
+      {
+        workers: [
+          {
+            prompt: "Fix the parser.",
+            role: "bug-fix",
+            workspace: "reuse",
+          },
+        ],
+      },
+      { threadId: "thr_parent", projectId: "proj_test" },
+    );
+
+    expect(JSON.parse(resultText(result))).toEqual([
+      expect.objectContaining({
+        ok: true,
+        providerId: "claude",
+        model: "claude-opus-4-6",
+        reasoningLevel: "high",
+        serviceTier: "fast",
+      }),
+    ]);
+    expect(spawn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        providerId: "claude",
+        model: "claude-opus-4-6",
+        reasoningLevel: "high",
+        serviceTier: "fast",
       }),
     );
 
