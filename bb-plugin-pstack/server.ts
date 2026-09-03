@@ -89,7 +89,6 @@ const PSTACK_TOOLS = [
   "pstack_get_model_config",
   "pstack_update_model_config",
   "pstack_spawn_threads",
-  "pstack_collect_threads",
   "pstack_finish_threads",
 ] as const;
 
@@ -100,54 +99,10 @@ const COMMENT_SICKO_PROMPT = `Your first output is exactly: Yes... Ha ha ha... Y
 You are Comment Sicko, a read-only comment reviewer. Read the supplied scope or the current diff against main. Condemn narration, banners, commented-out code, workaround sermons, suppressions that hide correctness rules, and long justifications. Keep only legal headers, non-obvious constraints forced by an external dependency or protocol, prettier-ignore, public API contract docs, and issue or RFC links for constraints code cannot express. Never write application code. Report touched files, deletion count, MUST KILL flags with one line each, and skips.`;
 
 const COORDINATOR_RULE =
-  "One owner per scope. While children run, the parent may only coordinate them or work on a disjoint scope. Do not investigate or edit delegated scope unless the brief declares an explicit race. Collect every required child before dependent work, review, verification, or finalization. A collection timeout or interruption is unresolved work, not permission to proceed. Read-only advisers do not satisfy mandatory implementation delegation.";
+  "One owner per scope. While children run, the parent may only coordinate them or work on a disjoint scope. Do not investigate or edit delegated scope unless the brief declares an explicit race. After spawn, stop or continue only disjoint work. Do not wait with a tool, `bb thread wait`, or polling. BB posts child-completion, failure, interruption, and needs-attention messages into this thread. Those messages are the barrier. Dependent work, review, verification, or finalization waits until they cover every required child. If a batched update is status-only, read `bb thread output <id>`. Read-only advisers do not satisfy mandatory implementation delegation.";
 
 const BRIEF_RULE =
   "Keep briefs compact. Point children to files and artifacts instead of inlining large payloads.";
-
-type ThreadStatus = Awaited<
-  ReturnType<BbPluginApi["sdk"]["threads"]["get"]>
->["status"];
-
-type CollectedOutput =
-  | { outputIncluded: false }
-  | { outputIncluded: true; output: string | null };
-
-type CompletedOutcome = {
-  kind: "completed";
-  threadId: string;
-  status: "idle";
-  pendingInteractions: 0;
-  cleanup: "not-requested" | "completed";
-} & CollectedOutput;
-
-type CollectionOutcome =
-  | CompletedOutcome
-  | {
-      kind: "timed-out";
-      threadId: string;
-      status: Exclude<ThreadStatus, "idle" | "error">;
-      pendingInteractions: 0;
-    }
-  | {
-      kind: "blocked";
-      threadId: string;
-      status: ThreadStatus;
-      pendingInteractions: number;
-    }
-  | ({
-      kind: "error";
-      threadId: string;
-      status: "error";
-      pendingInteractions: 0;
-      error: string;
-    } & CollectedOutput)
-  | {
-      kind: "error";
-      threadId: string;
-      status: "unavailable";
-      error: string;
-    };
 
 function workerPrompt(
   prompt: string,
@@ -331,9 +286,9 @@ export default async function plugin(bb: BbPluginApi) {
   bb.agents.registerTool({
     name: "pstack_spawn_threads",
     description:
-      "Spawn one or more visible BB child threads concurrently as pstack workers. Every child uses the configured provider and model for its role. Returns immediately with thread IDs; collect them later.",
+      "Spawn one or more visible BB child threads concurrently as pstack workers. Every child uses the configured provider and model for its role. Returns immediately with thread IDs. BB notifies this parent when a child completes, fails, is interrupted, or needs attention.",
     instructions: [
-      "Use this instead of a provider-native subagent or Task tool. Batch independent workers in one call. Use readOnly for reviewers and explorers. Give concurrent writers separate new-worktree workspaces.",
+      "Use this instead of a provider-native subagent, Task tool, or `bb thread spawn`. Batch independent workers in one call. Use readOnly for reviewers and explorers. Give concurrent writers separate new-worktree workspaces.",
       COORDINATOR_RULE,
       BRIEF_RULE,
     ].join(" "),
@@ -449,168 +404,11 @@ export default async function plugin(bb: BbPluginApi) {
     },
   });
 
-  function sleep(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (signal.aborted) {
-        reject(signal.reason ?? new Error("Aborted"));
-        return;
-      }
-      const onAbort = () => {
-        clearTimeout(timer);
-        reject(signal.reason ?? new Error("Aborted"));
-      };
-      const timer = setTimeout(() => {
-        signal.removeEventListener("abort", onAbort);
-        resolve();
-      }, ms);
-      signal.addEventListener("abort", onAbort, { once: true });
-    });
-  }
-
-  async function collectedOutput(
-    childThreadId: string,
-    includeOutputs: boolean,
-    signal: AbortSignal,
-  ): Promise<CollectedOutput> {
-    if (!includeOutputs) return { outputIncluded: false };
-    const { output } = await bb.sdk.threads.output({ threadId: childThreadId, signal });
-    return { outputIncluded: true, output };
-  }
-
-  async function collectThread(
-    childThreadId: string,
-    deadline: number,
-    includeOutputs: boolean,
-    signal: AbortSignal,
-  ): Promise<CollectionOutcome> {
-    try {
-      while (true) {
-        const [thread, interactions] = await Promise.all([
-          bb.sdk.threads.get({ threadId: childThreadId, signal }),
-          bb.sdk.threads.interactions.list({ threadId: childThreadId, signal }),
-        ]);
-
-        if (interactions.length > 0) {
-          return {
-            kind: "blocked",
-            threadId: childThreadId,
-            status: thread.status,
-            pendingInteractions: interactions.length,
-          };
-        }
-        if (thread.status === "error") {
-          return {
-            kind: "error",
-            threadId: childThreadId,
-            status: "error",
-            pendingInteractions: 0,
-            error: "Child thread ended with status error.",
-            ...(await collectedOutput(childThreadId, includeOutputs, signal)),
-          };
-        }
-        if (thread.status === "idle") {
-          return {
-            kind: "completed",
-            threadId: childThreadId,
-            status: "idle",
-            pendingInteractions: 0,
-            cleanup: "not-requested",
-            ...(await collectedOutput(childThreadId, includeOutputs, signal)),
-          };
-        }
-        if (Date.now() >= deadline) {
-          return {
-            kind: "timed-out",
-            threadId: childThreadId,
-            status: thread.status,
-            pendingInteractions: 0,
-          };
-        }
-
-        await sleep(Math.min(1000, deadline - Date.now()), signal);
-      }
-    } catch (cause) {
-      if (signal.aborted) throw cause;
-      return {
-        kind: "error",
-        threadId: childThreadId,
-        status: "unavailable",
-        error: cause instanceof Error ? cause.message : String(cause),
-      };
-    }
-  }
-
-  bb.agents.registerTool({
-    name: "pstack_collect_threads",
-    description:
-      "Wait for visible pstack child threads and enforce a required completion barrier. Returns completed, timed-out, blocked, or error outcomes plus aggregate complete. Workers remain visible unless cleanup is explicitly true.",
-    instructions: [
-      "Collect every required child before dependent work, review, verification, or finalization. By default, any incomplete child fails the tool; recollect timed-out workers, resolve or replace blocked workers, replace error workers, or explicitly set allowPartial: true to waive the barrier. A timeout or interrupted collection remains unresolved work; call collect again with the same required IDs.",
-      "BB already emits child-completion summaries, so includeOutputs defaults to false to avoid duplicating full reports in the parent context. Set includeOutputs: true only as a fallback when a completion summary and artifact pointers are insufficient.",
-      "Leave cleanup false so users can inspect completed child threads. Set cleanup true only when the user requested removal. Collection never cleans up timed-out, blocked, or error workers, and pending interactions remain available.",
-    ].join(" "),
-    presentation: {
-      label: { pending: "Collecting pstack workers", completed: "Collected pstack workers" },
-      icon: { glyph: "Workflow" },
-    },
-    parameters: z
-      .object({
-        threadIds: z.array(z.string().min(1)).min(1).max(24),
-        timeoutSeconds: z.number().int().min(1).max(3600).optional(),
-        cleanup: z.boolean().optional(),
-        allowPartial: z.boolean().optional(),
-        includeOutputs: z.boolean().optional(),
-      })
-      .strict(),
-    async execute(
-      { threadIds, timeoutSeconds, cleanup, allowPartial, includeOutputs },
-      { signal },
-    ) {
-      const deadline = Date.now() + (timeoutSeconds ?? 1200) * 1000;
-      let outcomes = await Promise.all(
-        threadIds.map((childThreadId) =>
-          collectThread(childThreadId, deadline, includeOutputs ?? false, signal),
-        ),
-      );
-
-      if (cleanup === true) {
-        outcomes = await Promise.all(
-          outcomes.map(async (outcome): Promise<CollectionOutcome> => {
-            if (outcome.kind !== "completed") return outcome;
-            if (signal.aborted) throw signal.reason ?? new Error("Aborted");
-            await bb.sdk.threads.archive({ threadId: outcome.threadId });
-            await bb.sdk.threads.stop({ threadId: outcome.threadId });
-            return { ...outcome, cleanup: "completed" };
-          }),
-        );
-      }
-
-      const complete = outcomes.every((outcome) => outcome.kind === "completed");
-      const result = { complete, outcomes };
-      if (!complete && allowPartial !== true) {
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                ...result,
-                action:
-                  "Collection barrier not satisfied. Recollect timed-out workers, resolve or replace blocked workers, replace error workers, or call again with allowPartial: true to waive the barrier.",
-              }),
-            },
-          ],
-          isError: true,
-        };
-      }
-      return JSON.stringify(result);
-    },
-  });
-
   bb.agents.registerTool({
     name: "pstack_finish_threads",
     description: "Archive and stop pstack child threads when the user explicitly requests cleanup.",
     instructions:
-      "Use only after the user asks to remove completed pstack child threads. Collection leaves them visible by default.",
+      "Use only after the user asks to remove completed pstack child threads. Completed children stay visible by default.",
     presentation: {
       label: { pending: "Stopping pstack workers", completed: "Stopped pstack workers" },
       icon: { glyph: "Workflow" },
@@ -648,10 +446,9 @@ export default async function plugin(bb: BbPluginApi) {
     tools: [...PSTACK_TOOLS],
     skills: [...PSTACK_SKILLS],
     instructions: [
-      "Pstack runs delegation through visible BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads and pstack_collect_threads instead of a provider-native subagent. Every child uses its role's configured provider and model and remains visible after collection unless cleanup is explicitly requested. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
+      "Pstack runs delegation through visible BB child threads. When a pstack skill says Task, subagent, worker agent, or model panel, use pstack_spawn_threads instead of a provider-native subagent or `bb thread spawn`. Spawn applies the role's configured provider, model, workspace, and preset. Children remain visible unless the user asks to finish them. Read role choices with pstack_get_model_config; never read ~/.cursor/rules/pstack-models.mdc.",
       COORDINATOR_RULE,
       BRIEF_RULE,
-      "Collection is a required barrier by default. BB already emits child-completion summaries; leave includeOutputs false unless those summaries and artifact pointers are insufficient.",
     ].join(" "),
   }));
 

@@ -33,7 +33,7 @@ When a worker must start from a non-default branch, name that branch and checkou
 
 Every brief stands alone. Include the goal, scope, exact slice or race arm, how to verify, and what to report. Reports use `PASS`, `ISSUES`, or `BLOCKED` with evidence.
 
-Collect the returned IDs with `pstack_collect_threads`. Collection fails the barrier while any requested worker is timed out, blocked, or errored. Recollect, resolve, or replace required workers. Proceed with N-1 only after an explicit `allowPartial: true` waiver, and note the gap.
+Do not wait with a tool. Dependent work waits until BB's child-completion, failure, interruption, or needs-attention messages cover every required worker. A failed or interrupted worker is unresolved unless you replace it. Proceed with N-1 only after an explicit judgment that the missing result is not required, and note the gap.
 
 ## Phase C: Aggregate
 

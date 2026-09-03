@@ -121,7 +121,7 @@ Worker config for each:
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-The pstack read-only worker prompt forbids writes without removing the child's evidence tools. Collect every returned thread ID with `pstack_collect_threads` before synthesis. Keep the thread IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
+The pstack read-only worker prompt forbids writes without removing the child's evidence tools. Do not wait with a tool. Synthesis waits until BB's child-completion messages cover every investigator. Keep the thread IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
 
 Each investigator gets compact grounding plus pointers to:
 1. `references/investigator-prompt.md`
@@ -172,7 +172,7 @@ Spawn one synthesizer with `pstack_spawn_threads`:
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect it with `pstack_collect_threads`.
+Do not wait with a tool. Continue after BB's child-completion message for that thread.
 
 The synthesizer gets:
 1. The investigator thread IDs and compact category results, including null results and skipped categories. It reads a detailed report from the named child log when needed instead of receiving full output inline.

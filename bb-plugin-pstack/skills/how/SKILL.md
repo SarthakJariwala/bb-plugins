@@ -49,7 +49,7 @@ Call `pstack_get_model_config`, then spawn all explorers in one `pstack_spawn_th
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect all returned thread IDs with `pstack_collect_threads` before synthesis. Keep the IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
+Do not wait with a tool. Synthesis waits until BB's child-completion messages cover every explorer. Keep the thread IDs as evidence pointers instead of fetching duplicate full outputs into the parent.
 
 Each brief points to `references/explorer-prompt.md` and adds the original question plus one compact exploration angle naming its slice. Do not paste the template into the brief. Each explorer should:
 - Start broad: Glob for relevant directories, Grep for key types/interfaces/class names
@@ -71,7 +71,7 @@ Spawn one visible child thread with `pstack_spawn_threads` that explores and exp
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect it with `pstack_collect_threads`.
+Do not wait with a tool. Continue after BB's child-completion message for that thread.
 
 The brief points to `references/explainer-prompt.md` for the communication style and output format. The child does its own exploration (Glob, Grep, Read) and writes the explanation directly. Use the same structure with no explorer findings input.
 
@@ -86,7 +86,7 @@ Once all explorers return, spawn one visible child thread with `pstack_spawn_thr
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-Collect it with `pstack_collect_threads`.
+Do not wait with a tool. Continue after BB's child-completion message for that thread.
 
 The explainer gets the explorer thread IDs, compact completion summaries, and relevant file pointers. It reads a detailed child report with `bb thread log <thread-id> --all --format json` when needed instead of receiving full output inline. Read `references/explainer-prompt.md` for the prompt template. The explainer reconciles overlapping findings, resolves contradictions, and weaves the slices into a unified picture.
 
@@ -118,7 +118,7 @@ Run the full explain flow above (Steps 1-4). You must understand the architectur
 
 ### Step 2. Spawn Critics
 
-After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four BB child threads; `/setup-pstack` can change its models, reasoning levels, and length. Collect every critic before lead judgment.
+After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four BB child threads; `/setup-pstack` can change its models, reasoning levels, and length. Do not wait with a tool. Lead judgment waits until BB's child-completion messages cover every critic.
 
 Each brief points to `references/critic-prompt.md` instead of pasting it. Each critic gets:
 1. The explainer thread ID as an artifact pointer, plus a compact orientation

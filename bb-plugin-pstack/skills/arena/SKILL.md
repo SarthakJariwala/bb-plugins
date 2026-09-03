@@ -30,15 +30,15 @@ The N candidates will receive the same prompt, so the prompt is the contract. Ge
 
 ## Phase B: Fan out
 
-Spawn all N visible child threads in one `pstack_spawn_threads` call. Give each worker `role: "arena-runners"`, its zero-based `selectionIndex`, `preset: "general"`, the task, the path to shared grounding, its own output path, and instructions to produce both the artifact and a short rationale. Use `workspace: "new-worktree"` for repository writers. Collect all runner IDs with `pstack_collect_threads` before cross-judging.
+Spawn all N visible child threads in one `pstack_spawn_threads` call. Give each worker `role: "arena-runners"`, its zero-based `selectionIndex`, `preset: "general"`, the task, the path to shared grounding, its own output path, and instructions to produce both the artifact and a short rationale. Use `workspace: "new-worktree"` for repository writers. Do not wait with a tool. Cross-judge only after BB's child-completion messages cover every runner.
 
 The rationale is mandatory. Without it, the parent cannot tell whether a candidate's structure is principled or accidental, which makes Phase E grafting unreliable. Each rationale names the alternatives the candidate considered and what it rejected.
 
-If a candidate fails to produce output, recollect or replace it when its result is required. Proceed with N-1 only after an explicit `allowPartial: true` collection waiver, and note the dropout in the synthesis record.
+If a candidate fails to produce output, replace it when its result is required. Proceed with N-1 only after an explicit judgment that the missing result is not required, and note the dropout in the synthesis record.
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one visible judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. Collect it before Phase D. The parent does not pre-judge the delegated scope while the judge runs.
+After all Phase B candidates complete, choose one entry from the configured `arena-cross-judge` pool. Prefer a model family different from the runner that produced the apparent leader when the configured pool permits it. Spawn one visible judge with `pstack_spawn_threads`, using `role: "arena-cross-judge"`, the chosen `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. It sees the rubric and candidates by path label, scores each criterion, and recommends a base with rationale. Do not wait with a tool. Start Phase D after BB's child-completion message for the judge. The parent does not pre-judge the delegated scope while the judge runs.
 
 ## Phase D: Pick a base
 

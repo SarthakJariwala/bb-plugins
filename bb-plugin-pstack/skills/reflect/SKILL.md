@@ -40,11 +40,11 @@ Call `pstack_get_model_config`, then make one `pstack_spawn_threads` call with t
 | Tooling | `reflect-tooling` | `references/tooling-reviewer.md` |
 | Divergent | `reflect-judgment` | `references/divergent-reviewer.md` |
 
-Give each child the matching template path and the thread-log artifact path or digest. Do not paste the template or log into the brief. Collect all three IDs with `pstack_collect_threads`. Keep their thread IDs as evidence pointers; do not fetch duplicate full outputs into the parent.
+Give each child the matching template path and the thread-log artifact path or digest. Do not paste the template or log into the brief. Do not wait with a tool. Continue after BB's child-completion messages cover every reviewer. Keep their thread IDs as evidence pointers; do not fetch duplicate full outputs into the parent.
 
 ### 3. Synthesize
 
-Spawn one child with `pstack_spawn_threads`, using `preset: "general"`, `role: "reflect-judgment"`, `readOnly: true`, and `workspace: "reuse"`. The synthesizer's quality check includes spot-verifying citations. Point it to `references/synthesizer.md`, the three reviewer thread IDs, and the thread-log artifact path. Do not inline those payloads. It can read the named child logs with `bb thread log <thread-id> --all --format json`. Collect it with `pstack_collect_threads`; it returns a structured Accepted / Rejected / Backlog list.
+Spawn one child with `pstack_spawn_threads`, using `preset: "general"`, `role: "reflect-judgment"`, `readOnly: true`, and `workspace: "reuse"`. The synthesizer's quality check includes spot-verifying citations. Point it to `references/synthesizer.md`, the three reviewer thread IDs, and the thread-log artifact path. Do not inline those payloads. It can read the named child logs with `bb thread log <thread-id> --all --format json`. Do not wait with a tool. After BB's child-completion message, it returns a structured Accepted / Rejected / Backlog list.
 
 ### 4. Structural enforcement check
 

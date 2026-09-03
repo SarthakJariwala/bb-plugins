@@ -64,7 +64,7 @@ Fix the log, not the story. If the work diverged from what a row claims, the row
 
 ## Cross-model review of the trail
 
-Before handing back, spawn one visible BB child thread on a different configured provider or model family from the one that did the work when the available catalogs permit it. Self-review is not a substitute; the point is fresh eyes you cannot bring yourself. Call `pstack_get_model_config`, choose a suitable entry from `arena-cross-judge`, then call `pstack_spawn_threads` with `preset: "general"`, `role: "arena-cross-judge"`, its `selectionIndex`, `readOnly: true`, and `workspace: "reuse"`. The child reads the audit trail and this run's exported BB thread log, then flags what the user should scrutinize. Collect it with `pstack_collect_threads`. This is a risk scan, not a redo.
+Before handing back, spawn one visible BB child thread on a different configured provider or model family from the one that did the work when the available catalogs permit it. Self-review is not a substitute; the point is fresh eyes you cannot bring yourself. Call `pstack_get_model_config`, choose a suitable entry from `arena-cross-judge`, then call `pstack_spawn_threads` with `preset: "general"`, `role: "arena-cross-judge"`, its `selectionIndex`, `readOnly: true`, and `workspace: "reuse"`. The child reads the audit trail and this run's exported BB thread log, then flags what the user should scrutinize. Do not wait with a tool. Continue after BB's child-completion message. This is a risk scan, not a redo.
 
 - Decisions logged with weak or absent evidence.
 - Verification steps skipped or claimed without proof in the transcript.

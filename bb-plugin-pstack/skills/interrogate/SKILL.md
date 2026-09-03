@@ -43,7 +43,7 @@ Launch all reviewers in one `pstack_spawn_threads` call. For each reviewer set:
 - `readOnly`: `true`
 - `workspace`: `reuse`
 
-If a configured model is unavailable, stop that reviewer, report the stale role selection, and ask the user to run `/setup-pstack`; never guess a replacement model. Collect all successfully spawned reviewers with `pstack_collect_threads`.
+If a configured model is unavailable, stop that reviewer, report the stale role selection, and ask the user to run `/setup-pstack`; never guess a replacement model. Do not wait with a tool. Proceed after BB's child-completion messages cover every successfully spawned reviewer.
 
 Point each brief to `references/reviewer-prompt.md` and provide these compact substitutions:
 1. The stated intent

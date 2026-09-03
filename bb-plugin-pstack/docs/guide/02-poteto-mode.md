@@ -75,9 +75,9 @@ Each task in its own branch and worktree means no agent stomps another's files. 
 
 ## Let the child own its scope
 
-Spawning is asynchronous. The parent gets thread IDs immediately and can coordinate the children or work on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares a race. It collects every required child before dependent work, review, verification, or finalization. A timeout or interrupted collection means the work is still unresolved.
+Spawning is asynchronous. The parent gets thread IDs immediately and can coordinate the children or work on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares a race. After spawn it stops or continues only disjoint work. It does not wait with a tool, `bb thread wait`, or polling. BB posts child-completion, failure, interruption, and needs-attention messages into the parent. Those messages are the barrier. Dependent work waits until they cover every required child.
 
-Collection is a required barrier by default. A timed-out, blocked, or errored child fails collection until the parent recollects, resolves, or replaces it. `allowPartial: true` is an explicit waiver, not a default. Completed children stay visible. BB already posts their completion summaries, so full child output is fetched only as a fallback.
+Completed children stay visible. BB already posts their completion summaries. If a batched update is status-only, read `bb thread output <id>`.
 
 Briefs stay compact. They point to files and artifacts instead of copying large logs, diffs, or reports into every child prompt.
 

@@ -26,7 +26,7 @@ Only edit the verification skill's own directory (its SKILL.md, features/, and a
 
 1. **Index hygiene.** Read the feature map README and glob its sibling files. Fix missing, extra, duplicate, or dead entries. Lightweight; no generated inventory.
 
-2. **Source wave.** Launch one read-only visible BB child thread per feature file concurrently in one `pstack_spawn_threads` call. Use `preset: "general"`, `role: "swarm-workers"`, `readOnly: true`, and `workspace: "reuse"`; collect all IDs with `pstack_collect_threads`. Each explains "how does this user-facing feature work?" from source, flags likely doc drift with citations, and returns one concise live-verification recipe. Children never drive the app and never edit files. Return shape: feature summary / source entry points / likely drift or none / one recipe.
+2. **Source wave.** Launch one read-only visible BB child thread per feature file concurrently in one `pstack_spawn_threads` call. Use `preset: "general"`, `role: "swarm-workers"`, `readOnly: true`, and `workspace: "reuse"`. Do not wait with a tool. Continue after BB's child-completion messages cover every child. Each explains "how does this user-facing feature work?" from source, flags likely doc drift with citations, and returns one concise live-verification recipe. Children never drive the app and never edit files. Return shape: feature summary / source entry points / likely drift or none / one recipe.
 
 3. **Reconcile.** Every feature file has a returned summary. Merge overlapping recipes into as few app states as practical. Spot-check cited drift; don't re-prove clean claims. Sweep recent churn for user-facing surfaces missing from the map — require a concrete source path before calling one missing.
 

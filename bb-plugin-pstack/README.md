@@ -8,7 +8,7 @@ Vendored from upstream pstack `0.14.5` at commit `68836ddaf5697224520f1847d90cdb
 
 - Installing the plugin installs all 45 pstack skills through the manifest's `bb.skills` contribution.
 - Pstack delegation uses visible BB child threads instead of provider-native subagents. Workers appear under their parent thread while they run and remain available for inspection afterward.
-- Each pstack role can use any provider registered in BB, including Pi, Claude, Codex, and Cursor. The plugin supplies tools for batched spawn, collection, and cleanup.
+- Each pstack role can use any provider registered in BB, including Pi, Claude, Codex, and Cursor. The plugin supplies tools for batched spawn and cleanup.
 - Per-role providers, models, reasoning levels, and service tiers live in plugin storage. Configure them with `/setup-pstack` or under **Settings → Plugins → pstack → Model roles**.
 - Upstream Grok `xhigh` defaults become `openai-codex/gpt-5.6-sol` at `xhigh`. The working BB defaults still use GPT-5.6 Sol through Pi, while setup can select any available BB provider and model.
 - Cursor transcript, model-rule, cloud-agent, and `/loop` instructions are mapped to BB threads, plugin configuration, managed worktrees, and BB automations.
@@ -61,16 +61,13 @@ Agents receive these native plugin tools:
 - `pstack_get_model_config`
 - `pstack_update_model_config`
 - `pstack_spawn_threads`
-- `pstack_collect_threads`
 - `pstack_finish_threads`
 
 Workers are parented to the calling thread and visible in normal thread navigation. Spawn returns immediately with thread IDs. A batch may contain only one writable worker using a shared `reuse` or `project-default` workspace; additional writers need `new-worktree`. This preflight runs before any child is spawned.
 
-One owner holds each scope. While children run, the parent coordinates them or works on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares an explicit race. The parent collects every required child before dependent work, review, verification, or finalization. A timeout or interrupted collection remains unresolved, and read-only advice does not satisfy a playbook's mandatory implementation delegation. Briefs point to files and artifacts and keep grounding compact instead of inlining large payloads.
+One owner holds each scope. While children run, the parent coordinates them or works on a disjoint scope. It does not investigate or edit delegated scope unless the brief declares an explicit race. After spawn, the parent stops or continues only disjoint work. It does not wait with a tool, `bb thread wait`, or polling. BB posts child-completion, failure, interruption, and needs-attention messages into the parent thread. Those messages are the barrier. Dependent work waits until they cover every required child. If a batched update is status-only, read `bb thread output <id>`. Read-only advice does not satisfy a playbook's mandatory implementation delegation. Briefs point to files and artifacts and keep grounding compact instead of inlining large payloads.
 
-`pstack_collect_threads` is a required barrier by default. It returns a `complete` aggregate and discriminated `completed`, `timed-out`, `blocked`, or `error` outcomes. Any incomplete worker fails the tool unless the caller explicitly sets `allowPartial: true`. BB already posts child-completion summaries, so collection does not fetch or return full outputs unless `includeOutputs: true` is set as a fallback.
-
-Collection leaves completed workers visible by default. Pass `cleanup: true` to clean up completed workers during collection, or call `pstack_finish_threads` when the user explicitly requests cleanup. Collection never cleans up timed-out, blocked, or error workers, so they can be recollected or resolved.
+Completed workers stay visible by default. Call `pstack_finish_threads` when the user explicitly requests cleanup.
 
 ## Develop
 
