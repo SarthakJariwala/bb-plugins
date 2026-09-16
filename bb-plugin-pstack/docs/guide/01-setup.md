@@ -22,7 +22,7 @@ In a new BB thread, run:
 /setup-pstack
 ```
 
-[`/setup-pstack`](../../skills/setup-pstack/SKILL.md) detects the providers and models available in the thread's environment, shows every role, and asks what you want. Answer the question. The plugin saves the configuration in its own storage, and the same values appear under **Settings → Plugins → pstack → Model roles**.
+[`/setup-pstack`](../../skills/setup-pstack/SKILL.md) detects the providers and models available in the thread's environment, asks for a reasoning budget, shows every role, and asks what you want. Answer the questions. The plugin saves the configuration in its own storage, and the same values appear under **Settings → Plugins → pstack → Model roles**.
 
 Scalar roles choose one provider, model, and reasoning level. For panel roles, one visible BB child thread runs per entry, so list length sets panel size. Setup also configures `swarm-workers`, the default for `/swarm` unless a race names another configured role or panel arm.
 

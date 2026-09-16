@@ -24,6 +24,10 @@ describe("pstack model configuration", () => {
         reasoningLevel: "xhigh",
       },
     ]);
+    expect(config["bug-fix"][0]?.reasoningLevel).toBe("xhigh");
+    expect(config["perf-issue"][0]?.reasoningLevel).toBe("xhigh");
+    expect(config.hillclimb[0]?.reasoningLevel).toBe("xhigh");
+    expect(config["hardest-tasks"][0]?.reasoningLevel).toBe("max");
   });
 
   it("keeps valid saved roles and repairs invalid or missing roles", () => {

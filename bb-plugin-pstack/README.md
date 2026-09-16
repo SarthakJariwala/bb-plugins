@@ -2,11 +2,11 @@
 
 A BB port of [Cursor's pstack plugin](https://github.com/cursor/plugins/tree/main/pstack), originally by Lauren Tan. It keeps the upstream skills, playbooks, references, scripts, agents, guide, and dormant Benny automation pack as close to upstream as BB permits.
 
-Vendored from upstream pstack `0.14.5` at commit `68836ddaf5697224520f1847d90cdb90ca8babaa`.
+Vendored from upstream pstack `0.15.2` at commit `5bf2b1544db739998121a306340631963c2ff3de`.
 
 ## BB adaptations
 
-- Installing the plugin installs all 45 pstack skills through the manifest's `bb.skills` contribution.
+- Installing the plugin installs all 47 pstack skills through the manifest's `bb.skills` contribution.
 - Pstack delegation uses visible BB child threads instead of provider-native subagents. Workers appear under their parent thread while they run and remain available for inspection afterward.
 - Each pstack role can use any provider registered in BB, including Pi, Claude, Codex, and Cursor. The plugin supplies tools for batched spawn and cleanup.
 - Per-role providers, models, reasoning levels, and service tiers live in plugin storage. Configure them with `/setup-pstack` or under **Settings → Plugins → pstack → Model roles**.

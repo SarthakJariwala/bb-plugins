@@ -164,9 +164,9 @@ const fourWayPanel = (): ModelSelection[] => [
 export function defaultModelConfig(): ModelConfig {
   return {
     "feature-refactoring": [sol("xhigh")],
-    "bug-fix": [sol("max")],
-    "perf-issue": [sol("max")],
-    hillclimb: [sol("max")],
+    "bug-fix": [sol("xhigh")],
+    "perf-issue": [sol("xhigh")],
+    hillclimb: [sol("xhigh")],
     "judgment-prose": [sol("max")],
     "hardest-tasks": [sol("max")],
     "how-explorer": [sol("xhigh")],

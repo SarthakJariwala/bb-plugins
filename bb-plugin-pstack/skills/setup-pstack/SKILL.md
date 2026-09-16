@@ -1,6 +1,6 @@
 ---
 name: setup-pstack
-description: Configure which BB providers, models, reasoning levels, and service tiers pstack uses per role. Detects available choices and saves role overrides in the BB pstack plugin. Use for /setup-pstack, "configure pstack models", or changing pstack's model choices.
+description: Configure which BB providers, models, reasoning levels, and service tiers pstack uses per role. Detects available choices and saves role overrides in the BB pstack plugin. Use for /setup-pstack, "configure pstack models", "pstack budget", or changing pstack's model choices.
 ---
 
 # Setup pstack
@@ -30,11 +30,20 @@ Group the output into:
 - Explanation and judgment: judgment and prose, how explorer, how explainer, why investigators, why synthesizer, reflect tooling, reflect judgment.
 - Panels: how critics, arena runners, arena cross-judge pool, swarm workers, architect runners, interrogate reviewers.
 
-### 3. Ask for changes
+### 3. Budget, then role changes
 
-Ask whether to keep the mapping, reset to defaults, or change named roles. Offer only provider, model, reasoning, and service-tier combinations returned by `pstack_get_model_config`.
+**(a) Ask for a budget.** Offer these four options. Name the current budget when you can. All `xhigh` is large, all `high` is medium, all `medium` is small. Mixed levels, including the default mix of `max` and `xhigh`, are unlimited.
 
-For panel roles, make clear that list length controls fan-out. Preserve the current entry count unless the user asks to change it. `arena cross-judge pool` is a candidate pool; Arena chooses one entry when it judges.
+- `unlimited (keep max)`
+- `large (xhigh reasoning)`
+- `medium (high reasoning)`
+- `small (medium reasoning)`
+
+**(b) Apply it.** Build a working table from the current mapping. `unlimited` leaves every reasoning level as it is. `large`, `medium`, and `small` set every selection's reasoning level, panel entries included, to `xhigh`, `high`, or `medium`. Keep provider, model, and service tier. If a model does not list the target level, use the highest supported level at or below the target. Else mark that role as needing a choice.
+
+**(c) Ask for role changes.** Show the working table. Ask whether to keep it, reset to defaults, or change named roles. Offer only provider, model, reasoning, and service-tier combinations returned by `pstack_get_model_config`.
+
+For panel roles, make clear that list length controls fan-out. Preserve the current entry count unless the user asks to change it. `arena cross-judge pool` is a candidate pool. Arena chooses one entry when it judges.
 
 Use a normal concise question. Do not write guessed model IDs.
 
