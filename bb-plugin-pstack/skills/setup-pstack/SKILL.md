@@ -28,7 +28,7 @@ Group the output into:
 
 - Implementation: feature and refactoring, bug fix, performance issue, hillclimb, hardest tasks.
 - Explanation and judgment: judgment and prose, how explorer, how explainer, why investigators, why synthesizer, reflect tooling, reflect judgment.
-- Panels: how critics, arena runners, arena cross-judge pool, swarm workers, architect runners, interrogate reviewers.
+- Panels: arena runners, arena cross-judge pool, swarm workers, architect runners, interrogate reviewers.
 
 ### 3. Budget, then role changes
 

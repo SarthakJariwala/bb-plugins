@@ -34,6 +34,10 @@ describe("pstack model configuration", () => {
     const config = normalizeModelConfig({
       "bug-fix": [{ model: "custom/model", reasoningLevel: "high" }],
       "feature-refactoring": [],
+      "how-critics": [
+        { model: "old/critic", reasoningLevel: "max" },
+        { model: "old/critic-2", reasoningLevel: "max" },
+      ],
     });
 
     expect(config["bug-fix"]).toEqual([
@@ -42,6 +46,7 @@ describe("pstack model configuration", () => {
     expect(config["feature-refactoring"]).toEqual(
       defaultModelConfig()["feature-refactoring"],
     );
+    expect(config).not.toHaveProperty("how-critics");
   });
 
   it("requires one selection for scalar roles and rotates panel selections", () => {

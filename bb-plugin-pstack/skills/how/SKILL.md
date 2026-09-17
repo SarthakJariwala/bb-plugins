@@ -1,20 +1,13 @@
 ---
 name: how
-description: "Use for \"how does X work\", code walkthroughs before changing something, and placement / ownership / layering questions (\"where should this live\", \"which package owns this\", \"is this the right layer\"). Explains subsystem architecture, runtime flow, onboarding mental models. Can critique architecture. Use why for motivation."
+description: "Use for \"how does X work\", code walkthroughs before changing something, and placement / ownership / layering questions (\"where should this live\", \"which package owns this\", \"is this the right layer\"). Explains subsystem architecture, runtime flow, onboarding mental models. Use why for motivation."
 ---
 
 # How
 
 Explore the codebase to answer "how does X work?" questions. Produce clear architectural explanations at the level of a senior engineer onboarding onto a subsystem. Enough to build a working mental model, not annotated source code.
 
-Two modes:
-
-1. **Explain** (default). Explore the codebase and produce a clear explanation
-2. **Critique.** Explain first, then spawn multiple models to independently identify architectural issues
-
-## Explain Mode
-
-### Step 1. Understand the Question and Assess Complexity
+## Step 1. Understand the Question and Assess Complexity
 
 Parse what the user is asking about:
 
@@ -32,7 +25,7 @@ Identify the scope. If ambiguous, state your best-guess interpretation before ex
 
 When in doubt, lean simple. You can always spawn explorers if the explainer hits a wall.
 
-### Step 2a. Explore (complex questions only)
+## Step 2a. Explore (complex questions only)
 
 Decompose the question into 2-4 parallel exploration angles, each a distinct slice of the subsystem so explorers don't duplicate work. Example split for "how does the rate limiter work?":
 
@@ -62,7 +55,7 @@ Each explorer returns structured findings: components found, flow traced, files 
 
 Then proceed to Step 3.
 
-### Step 2b. Direct Explain (simple questions)
+## Step 2b. Direct Explain (simple questions)
 
 Spawn one visible child thread with `pstack_spawn_threads` that explores and explains in one pass:
 
@@ -77,7 +70,7 @@ The brief points to `references/explainer-prompt.md` for the communication style
 
 Proceed to Step 4.
 
-### Step 3. Synthesize (complex questions only)
+## Step 3. Synthesize (complex questions only)
 
 Once all explorers return, spawn one visible child thread with `pstack_spawn_threads` to synthesize their findings into one coherent explanation:
 
@@ -90,11 +83,11 @@ Do not wait with a tool. Continue after BB's child-completion message for that t
 
 The explainer gets the explorer thread IDs, compact completion summaries, and relevant file pointers. It reads a detailed child report with `bb thread log <thread-id> --all --format json` when needed instead of receiving full output inline. Read `references/explainer-prompt.md` for the prompt template. The explainer reconciles overlapping findings, resolves contradictions, and weaves the slices into a unified picture.
 
-### Step 4. Present
+## Step 4. Present
 
 Present the explainer's output to the user. You may lightly edit for clarity or add context from the conversation, but don't substantially rewrite. The explainer's communication is the product.
 
-### Output Format
+## Output Format
 
 Follow this structure, adapted to the question. Not every section is needed for every question.
 
@@ -107,32 +100,3 @@ Follow this structure, adapted to the question. Not every section is needed for 
 **Where Things Live.** A brief map of the relevant files/directories. Not every file, just the ones needed to start working in this area.
 
 **Gotchas.** Non-obvious or surprising things that would trip someone up. Historical context that explains why something looks weird. Known sharp edges.
-
-## Critique Mode
-
-Triggered when the user asks for architectural issues, problems, or improvements, not just understanding.
-
-### Step 1. Explain First
-
-Run the full explain flow above (Steps 1-4). You must understand the architecture before critiquing it.
-
-### Step 2. Spawn Critics
-
-After the explanation is complete, read the configured `how-critics` panel with `pstack_get_model_config`. Spawn one critic per panel entry in one `pstack_spawn_threads` call. Give each worker `role: "how-critics"`, its zero-based `selectionIndex`, `preset: "general"`, `readOnly: true`, and `workspace: "reuse"`. The panel defaults to four BB child threads; `/setup-pstack` can change its models, reasoning levels, and length. Do not wait with a tool. Lead judgment waits until BB's child-completion messages cover every critic.
-
-Each brief points to `references/critic-prompt.md` instead of pasting it. Each critic gets:
-1. The explainer thread ID as an artifact pointer, plus a compact orientation
-2. The relevant file paths so it can read the actual code
-3. The path `references/critique-rubric.md`
-
-### Step 3. Lead Judgment
-
-Same framework as the interrogate skill. You're a pragmatic lead, not an aggregator.
-
-Categorize findings:
-- **Act on.** Architectural problems worth fixing now
-- **Consider.** Real concerns, but the cost/benefit is unclear
-- **Noted.** Valid observations, low priority
-- **Dismissed.** Wrong, missing context, or style preference
-
-Present the explanation first (from Step 1), then the critique verdict below it. The explanation should stand on its own; someone who just wants to understand the system shouldn't wade through critique.

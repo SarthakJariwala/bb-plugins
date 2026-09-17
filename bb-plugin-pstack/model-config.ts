@@ -72,12 +72,6 @@ export const ROLE_DEFINITIONS = [
     panel: false,
   },
   {
-    id: "how-critics",
-    label: "How critics",
-    description: "One architectural critic thread per entry.",
-    panel: true,
-  },
-  {
     id: "why-investigators",
     label: "Why investigators",
     description: "Parallel evidence-source investigation.",
@@ -171,7 +165,6 @@ export function defaultModelConfig(): ModelConfig {
     "hardest-tasks": [sol("max")],
     "how-explorer": [sol("xhigh")],
     "how-explainer": [sol("max")],
-    "how-critics": fourWayPanel(),
     "why-investigators": [sol("xhigh")],
     "why-synthesizer": [sol("max")],
     "reflect-tooling": [sol("max")],
